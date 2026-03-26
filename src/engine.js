@@ -126,8 +126,9 @@ const drawPixelMask = (maskCanvas, mask, phase, fill) => {
 };
 
 const drawStage = (ctx, width, height, stage) => {
-  const stageWidth = width * stage.width;
-  const stageHeight = height * stage.height;
+  const scale = stage.scale ?? 1;
+  const stageWidth = width * stage.width * scale;
+  const stageHeight = height * stage.height * scale;
   const x = width * stage.x - stageWidth / 2;
   const y = height * stage.y - stageHeight / 2;
   if (stage.showBackdrop) {
@@ -224,10 +225,10 @@ const drawInfoLayer = (ctx, width, height, infoLayer) => {
 
   const dateX = width * (infoLayer.dateX ?? infoLayer.eventX ?? 0.04);
   const dateY = height * (infoLayer.dateY ?? infoLayer.eventY ?? 0.05);
-  const titleX = width * (infoLayer.titleX ?? ((infoLayer.eventX ?? 0.04) + 0.22));
-  const titleY = height * (infoLayer.titleY ?? infoLayer.eventY ?? 0.05);
-  const metaX = width * (infoLayer.metaX ?? titleX / width);
-  const metaY = height * (infoLayer.metaY ?? ((infoLayer.eventY ?? 0.05) + (titleSize * 2.08) / height));
+  const titleX = width * (infoLayer.titleX ?? 0.18);
+  const titleY = height * (infoLayer.titleY ?? 0.36);
+  const metaX = width * (infoLayer.metaX ?? 0.72);
+  const metaY = height * (infoLayer.metaY ?? 0.82);
 
   ctx.fillStyle = infoLayer.dateColor;
   ctx.font = `${infoLayer.weight ?? 500} ${dateSize}px "Degular", "Helvetica Neue", Helvetica, Arial, sans-serif`;

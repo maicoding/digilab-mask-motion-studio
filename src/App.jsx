@@ -528,6 +528,7 @@ const App = () => {
             <SliderField label="Stage Breite" value={scene.stage.width} min={0.3} max={0.92} step={0.01} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('stage.width', value)} />
             <SliderField label="Stage Höhe" value={scene.stage.height} min={0.2} max={0.86} step={0.01} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('stage.height', value)} />
           </div>
+          <SliderField label="Mask Size" value={scene.stage.scale ?? 1} min={0.6} max={1.5} step={0.01} format={(value) => `${value.toFixed(2)}x`} onChange={(value) => updateScene('stage.scale', value)} />
           <ToggleField label="Backdrop Box" checked={scene.stage.showBackdrop ?? false} onChange={(value) => updateScene('stage.showBackdrop', value)} />
           <div className="field-grid">
             <SliderField label="Shadow" value={scene.stage.shadow} min={0} max={0.5} step={0.01} onChange={(value) => updateScene('stage.shadow', value)} />
@@ -717,12 +718,12 @@ const App = () => {
             <SliderField label="Datum Y" value={scene.infoLayer.dateY ?? scene.infoLayer.eventY} min={0.01} max={0.9} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.dateY', value)} />
           </div>
           <div className="field-grid">
-            <SliderField label="Titel X" value={scene.infoLayer.titleX ?? ((scene.infoLayer.eventX ?? 0.04) + 0.22)} min={0.01} max={0.95} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.titleX', value)} />
-            <SliderField label="Titel Y" value={scene.infoLayer.titleY ?? scene.infoLayer.eventY} min={0.01} max={0.9} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.titleY', value)} />
+            <SliderField label="Titel X" value={scene.infoLayer.titleX ?? 0.18} min={0.01} max={0.95} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.titleX', value)} />
+            <SliderField label="Titel Y" value={scene.infoLayer.titleY ?? 0.36} min={0.01} max={0.9} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.titleY', value)} />
           </div>
           <div className="field-grid">
-            <SliderField label="Meta X" value={scene.infoLayer.metaX ?? (scene.infoLayer.titleX ?? ((scene.infoLayer.eventX ?? 0.04) + 0.22))} min={0.01} max={0.95} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.metaX', value)} />
-            <SliderField label="Meta Y" value={scene.infoLayer.metaY ?? 0.16} min={0.01} max={0.95} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.metaY', value)} />
+            <SliderField label="Meta X" value={scene.infoLayer.metaX ?? 0.72} min={0.01} max={0.95} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.metaX', value)} />
+            <SliderField label="Meta Y" value={scene.infoLayer.metaY ?? 0.82} min={0.01} max={0.95} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.metaY', value)} />
           </div>
           <div className="field-grid">
             <SliderField label="Mail X" value={scene.infoLayer.emailX} min={0.01} max={0.9} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.emailX', value)} />
@@ -816,8 +817,8 @@ const App = () => {
                   type="button"
                   className={`drag-handle ${draggingTarget === 'title' ? 'is-dragging' : ''}`}
                   style={{
-                    left: `${(scene.infoLayer.titleX ?? ((scene.infoLayer.eventX ?? 0.04) + 0.22)) * 100}%`,
-                    top: `${(scene.infoLayer.titleY ?? scene.infoLayer.eventY) * 100}%`,
+                    left: `${(scene.infoLayer.titleX ?? 0.18) * 100}%`,
+                    top: `${(scene.infoLayer.titleY ?? 0.36) * 100}%`,
                   }}
                   onPointerDown={(event) => {
                     event.preventDefault();
@@ -830,8 +831,8 @@ const App = () => {
                   type="button"
                   className={`drag-handle ${draggingTarget === 'meta' ? 'is-dragging' : ''}`}
                   style={{
-                    left: `${(scene.infoLayer.metaX ?? (scene.infoLayer.titleX ?? ((scene.infoLayer.eventX ?? 0.04) + 0.22))) * 100}%`,
-                    top: `${(scene.infoLayer.metaY ?? 0.16) * 100}%`,
+                    left: `${(scene.infoLayer.metaX ?? 0.72) * 100}%`,
+                    top: `${(scene.infoLayer.metaY ?? 0.82) * 100}%`,
                   }}
                   onPointerDown={(event) => {
                     event.preventDefault();
