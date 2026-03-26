@@ -209,6 +209,25 @@ const drawLogo = (ctx, width, height, overlay, logoImage) => {
   ctx.drawImage(renderTarget, x, y, logoWidth, logoHeight);
 };
 
+const drawTextLayer = (ctx, width, height, textLayer) => {
+  if (!textLayer?.show || !textLayer.content) {
+    return;
+  }
+  const fontSize = Math.max(12, Math.round(textLayer.size));
+  ctx.save();
+  ctx.fillStyle = textLayer.color;
+  ctx.textBaseline = 'top';
+  ctx.textAlign = textLayer.align ?? 'left';
+  ctx.font = `${textLayer.weight ?? 500} ${fontSize}px "Degular", "Helvetica Neue", Helvetica, Arial, sans-serif`;
+  const x = width * textLayer.x;
+  const y = height * textLayer.y;
+  const lines = String(textLayer.content).split('\n');
+  lines.forEach((line, index) => {
+    ctx.fillText(line, x, y + index * fontSize * 1.04);
+  });
+  ctx.restore();
+};
+
 export const renderScene = ({ ctx, width, height, scene, colors, time, getImage }) => {
   ctx.clearRect(0, 0, width, height);
   ctx.fillStyle = scene.useCustomBackground ? scene.backgroundColor : colors.background;
@@ -223,13 +242,8 @@ export const renderScene = ({ ctx, width, height, scene, colors, time, getImage 
   const image = getImage(scene.imageSrc);
   drawMaskedImage(ctx, bounds, scene, phase, image, colors);
 
+  drawTextLayer(ctx, width, height, scene.textLayer);
+
   const logoImage = getImage(scene.overlay.logoSrc);
   drawLogo(ctx, width, height, scene.overlay, logoImage);
-
-  if (scene.overlay.caption) {
-    ctx.fillStyle = colors.accent;
-    ctx.font = `${Math.max(16, Math.round(width * 0.024))}px "Montserrat", sans-serif`;
-    ctx.textBaseline = 'top';
-    ctx.fillText(scene.overlay.caption, Math.min(width, height) * 0.04, height - Math.min(width, height) * 0.08);
-  }
 };

@@ -120,12 +120,25 @@ const UploadButton = ({ label, accept, onSelect }) => {
   );
 };
 
+const TEXT_SWATCHES = [
+  '#FFFFFF',
+  '#000000',
+  '#FFF500',
+  '#9933FF',
+  '#00FDFF',
+  '#00FF0A',
+  '#FF6E00',
+  '#3355FF',
+  '#FF66FF',
+];
+
 const App = () => {
   const initialScene = useMemo(() => createInitialScene(), []);
   const [scene, setScene] = useState(initialScene);
   const [assetVersion, setAssetVersion] = useState(0);
   const [previewZoom, setPreviewZoom] = useState(0.72);
   const [isRecording, setIsRecording] = useState(false);
+  const [draggingText, setDraggingText] = useState(false);
   const canvasRef = useRef(null);
   const stageRef = useRef(null);
   const imageCacheRef = useRef(new Map());
@@ -179,6 +192,10 @@ const App = () => {
       overlay: {
         ...current.overlay,
         logoTint: scheme.accent,
+      },
+      textLayer: {
+        ...current.textLayer,
+        color: scheme.accent,
       },
     }));
   };
@@ -614,12 +631,47 @@ const App = () => {
             <SliderField label="Logo X" value={scene.overlay.logoX} min={0.05} max={0.95} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('overlay.logoX', value)} />
             <SliderField label="Logo Y" value={scene.overlay.logoY} min={0.05} max={0.95} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('overlay.logoY', value)} />
           </div>
+        </Section>
+
+        <Section title="Text Layer" icon={Settings2} defaultOpen={false}>
+          <ToggleField label="Text anzeigen" checked={scene.textLayer.show} onChange={(value) => updateScene('textLayer.show', value)} />
           <label className="field">
             <div className="field__head">
-              <span>Caption</span>
+              <span>Text</span>
             </div>
-            <input type="text" value={scene.overlay.caption} onChange={(event) => updateScene('overlay.caption', event.target.value)} placeholder="z. B. digilab.ai" />
+            <textarea value={scene.textLayer.content} onChange={(event) => updateScene('textLayer.content', event.target.value)} rows={3} />
           </label>
+          <ColorField label="Textfarbe" value={scene.textLayer.color} onChange={(value) => updateScene('textLayer.color', value)} />
+          <div className="swatch-row">
+            {TEXT_SWATCHES.map((color) => (
+              <button
+                key={color}
+                type="button"
+                className="swatch"
+                style={{ background: color }}
+                onClick={() => updateScene('textLayer.color', color)}
+                aria-label={color}
+              />
+            ))}
+          </div>
+          <div className="field-grid">
+            <SliderField label="Font Size" value={scene.textLayer.size} min={16} max={96} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('textLayer.size', value)} />
+            <SliderField label="Weight" value={scene.textLayer.weight} min={300} max={700} step={100} format={(value) => `${Math.round(value)}`} onChange={(value) => updateScene('textLayer.weight', value)} />
+          </div>
+          <div className="field-grid">
+            <SliderField label="Text X" value={scene.textLayer.x} min={0.02} max={0.98} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('textLayer.x', value)} />
+            <SliderField label="Text Y" value={scene.textLayer.y} min={0.02} max={0.98} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('textLayer.y', value)} />
+          </div>
+          <SelectField
+            label="Ausrichtung"
+            value={scene.textLayer.align}
+            options={[
+              { value: 'left', label: 'Links' },
+              { value: 'center', label: 'Zentriert' },
+              { value: 'right', label: 'Rechts' },
+            ]}
+            onChange={(value) => updateScene('textLayer.align', value)}
+          />
         </Section>
 
         <Section title="Export" icon={Film} defaultOpen={false}>
@@ -653,6 +705,16 @@ const App = () => {
               width: preset.width * previewScale,
               height: preset.height * previewScale,
             }}
+            onPointerMove={(event) => {
+              if (!draggingText) {
+                return;
+              }
+              const rect = event.currentTarget.getBoundingClientRect();
+              updateScene('textLayer.x', Math.min(0.98, Math.max(0.02, (event.clientX - rect.left) / rect.width)));
+              updateScene('textLayer.y', Math.min(0.98, Math.max(0.02, (event.clientY - rect.top) / rect.height)));
+            }}
+            onPointerUp={() => setDraggingText(false)}
+            onPointerLeave={() => setDraggingText(false)}
           >
             <canvas
               ref={canvasRef}
@@ -664,6 +726,25 @@ const App = () => {
                 height: preset.height * previewScale,
               }}
             />
+            {scene.textLayer.show && (
+              <div
+                className={`text-dragger ${draggingText ? 'is-dragging' : ''}`}
+                style={{
+                  left: `${scene.textLayer.x * 100}%`,
+                  top: `${scene.textLayer.y * 100}%`,
+                  color: scene.textLayer.color,
+                  fontSize: `${scene.textLayer.size * previewScale}px`,
+                  fontWeight: scene.textLayer.weight,
+                  textAlign: scene.textLayer.align,
+                }}
+                onPointerDown={(event) => {
+                  event.preventDefault();
+                  setDraggingText(true);
+                }}
+              >
+                {scene.textLayer.content || 'digilab.ai@fh-dortmund.de'}
+              </div>
+            )}
           </div>
         </div>
 

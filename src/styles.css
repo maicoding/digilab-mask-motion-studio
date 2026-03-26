@@ -347,6 +347,19 @@ textarea {
   gap: 10px;
 }
 
+.swatch-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
 .library-card {
   padding: 10px;
   border-radius: 16px;
@@ -398,6 +411,22 @@ textarea {
 
 .stage__canvas {
   display: block;
+}
+
+.text-dragger {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  max-width: 60%;
+  white-space: pre-line;
+  line-height: 1.04;
+  font-family: 'Degular', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  cursor: move;
+  user-select: none;
+  text-shadow: 0 0 16px rgba(0, 0, 0, 0.16);
+}
+
+.text-dragger.is-dragging {
+  opacity: 0.82;
 }
 
 .reference-card {

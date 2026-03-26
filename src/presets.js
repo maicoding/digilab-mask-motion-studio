@@ -29,19 +29,8 @@ export const LOGO_PRESETS = [
     },
   },
   {
-    id: 'digilab-gelb',
-    name: 'digilab.ai Gelb',
-    src: '/logos/dwd-digilab-ai-gelb.svg',
-    defaults: {
-      tint: '#FFF500',
-      preserveColor: true,
-      removeWhite: false,
-      whiteThreshold: 240,
-    },
-  },
-  {
     id: 'bildmarke',
-    name: 'DWD Bildmarke',
+    name: 'DigiLab.ai Bildmarke',
     src: '/logos/dwd-bildmarke-blau.png',
     defaults: {
       tint: '#3355FF',
@@ -361,6 +350,15 @@ export const createInitialScene = () => ({
     logoScale: 0.9,
     logoX: 0.92,
     logoY: 0.94,
-    caption: '',
+  },
+  textLayer: {
+    show: true,
+    content: 'digilab.ai@fh-dortmund.de',
+    color: '#FFFFFF',
+    size: 32,
+    weight: 500,
+    x: 0.08,
+    y: 0.92,
+    align: 'left',
   },
 });
