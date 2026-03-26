@@ -225,10 +225,10 @@ const drawInfoLayer = (ctx, width, height, infoLayer) => {
 
   const dateX = width * (infoLayer.dateX ?? infoLayer.eventX ?? 0.04);
   const dateY = height * (infoLayer.dateY ?? infoLayer.eventY ?? 0.05);
-  const titleX = width * (infoLayer.titleX ?? 0.18);
-  const titleY = height * (infoLayer.titleY ?? 0.36);
-  const metaX = width * (infoLayer.metaX ?? 0.72);
-  const metaY = height * (infoLayer.metaY ?? 0.82);
+  const titleX = width * (infoLayer.titleX ?? 0.25);
+  const titleY = height * (infoLayer.titleY ?? 0.06);
+  const metaX = width * (infoLayer.metaX ?? 0.25);
+  const metaY = height * (infoLayer.metaY ?? 0.16);
 
   ctx.fillStyle = infoLayer.dateColor;
   ctx.font = `${infoLayer.weight ?? 500} ${dateSize}px "Degular", "Helvetica Neue", Helvetica, Arial, sans-serif`;

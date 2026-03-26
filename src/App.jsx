@@ -132,6 +132,19 @@ const TEXT_SWATCHES = [
   '#FF66FF',
 ];
 
+const AEP_INFO_LAYOUT = {
+  dateX: 0.03,
+  dateY: 0.06,
+  titleX: 0.25,
+  titleY: 0.06,
+  metaX: 0.25,
+  metaY: 0.16,
+  emailX: 0.03,
+  emailY: 0.92,
+  logoX: 0.92,
+  logoY: 0.94,
+};
+
 const App = () => {
   const initialScene = useMemo(() => createInitialScene(), []);
   const [scene, setScene] = useState(initialScene);
@@ -320,6 +333,28 @@ const App = () => {
         preserveColor: entry.defaults?.preserveColor ?? current.overlay.preserveColor,
         removeWhite: entry.defaults?.removeWhite ?? current.overlay.removeWhite,
         whiteThreshold: entry.defaults?.whiteThreshold ?? current.overlay.whiteThreshold,
+      },
+    }));
+  };
+
+  const applyAepInfoLayout = () => {
+    setScene((current) => ({
+      ...current,
+      infoLayer: {
+        ...current.infoLayer,
+        dateX: AEP_INFO_LAYOUT.dateX,
+        dateY: AEP_INFO_LAYOUT.dateY,
+        titleX: AEP_INFO_LAYOUT.titleX,
+        titleY: AEP_INFO_LAYOUT.titleY,
+        metaX: AEP_INFO_LAYOUT.metaX,
+        metaY: AEP_INFO_LAYOUT.metaY,
+        emailX: AEP_INFO_LAYOUT.emailX,
+        emailY: AEP_INFO_LAYOUT.emailY,
+      },
+      overlay: {
+        ...current.overlay,
+        logoX: AEP_INFO_LAYOUT.logoX,
+        logoY: AEP_INFO_LAYOUT.logoY,
       },
     }));
   };
@@ -538,6 +573,14 @@ const App = () => {
             <SliderField label="Backdrop Alpha" value={scene.stage.backdropOpacity ?? 1} min={0} max={1} step={0.01} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('stage.backdropOpacity', value)} />
             <div />
           </div>
+          <div className="field-grid">
+            <ToggleField label="Raster anzeigen" checked={scene.guides.showGrid} onChange={(value) => updateScene('guides.showGrid', value)} />
+            <SliderField label="Raster Deckkraft" value={scene.guides.opacity} min={0.05} max={0.6} step={0.01} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('guides.opacity', value)} />
+          </div>
+          <div className="field-grid">
+            <SliderField label="Raster Spalten" value={scene.guides.columns} min={2} max={24} step={1} format={(value) => `${Math.round(value)}`} onChange={(value) => updateScene('guides.columns', value)} />
+            <SliderField label="Raster Reihen" value={scene.guides.rows} min={2} max={24} step={1} format={(value) => `${Math.round(value)}`} onChange={(value) => updateScene('guides.rows', value)} />
+          </div>
         </Section>
 
         <Section title="Media" icon={ImagePlus}>
@@ -639,6 +682,12 @@ const App = () => {
 
         <Section title="Info Text" icon={Settings2} defaultOpen={false}>
           <ToggleField label="Infos anzeigen" checked={scene.infoLayer.show} onChange={(value) => updateScene('infoLayer.show', value)} />
+          <div className="button-row">
+            <button className="ghost-button" type="button" onClick={applyAepInfoLayout}>
+              <RotateCcw size={15} />
+              AEP Layout
+            </button>
+          </div>
           <div className="field-grid">
             <label className="field">
               <div className="field__head">
@@ -718,12 +767,12 @@ const App = () => {
             <SliderField label="Datum Y" value={scene.infoLayer.dateY ?? scene.infoLayer.eventY} min={0.01} max={0.9} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.dateY', value)} />
           </div>
           <div className="field-grid">
-            <SliderField label="Titel X" value={scene.infoLayer.titleX ?? 0.18} min={0.01} max={0.95} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.titleX', value)} />
-            <SliderField label="Titel Y" value={scene.infoLayer.titleY ?? 0.36} min={0.01} max={0.9} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.titleY', value)} />
+            <SliderField label="Titel X" value={scene.infoLayer.titleX ?? AEP_INFO_LAYOUT.titleX} min={0.01} max={0.95} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.titleX', value)} />
+            <SliderField label="Titel Y" value={scene.infoLayer.titleY ?? AEP_INFO_LAYOUT.titleY} min={0.01} max={0.9} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.titleY', value)} />
           </div>
           <div className="field-grid">
-            <SliderField label="Meta X" value={scene.infoLayer.metaX ?? 0.72} min={0.01} max={0.95} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.metaX', value)} />
-            <SliderField label="Meta Y" value={scene.infoLayer.metaY ?? 0.82} min={0.01} max={0.95} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.metaY', value)} />
+            <SliderField label="Meta X" value={scene.infoLayer.metaX ?? AEP_INFO_LAYOUT.metaX} min={0.01} max={0.95} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.metaX', value)} />
+            <SliderField label="Meta Y" value={scene.infoLayer.metaY ?? AEP_INFO_LAYOUT.metaY} min={0.01} max={0.95} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.metaY', value)} />
           </div>
           <div className="field-grid">
             <SliderField label="Mail X" value={scene.infoLayer.emailX} min={0.01} max={0.9} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.emailX', value)} />
@@ -782,6 +831,9 @@ const App = () => {
               } else if (draggingTarget === 'email') {
                 updateScene('infoLayer.emailX', x);
                 updateScene('infoLayer.emailY', y);
+              } else if (draggingTarget === 'logo') {
+                updateScene('overlay.logoX', x);
+                updateScene('overlay.logoY', y);
               }
             }}
             onPointerUp={() => setDraggingTarget(null)}
@@ -797,6 +849,16 @@ const App = () => {
                 height: preset.height * previewScale,
               }}
             />
+            {scene.guides.showGrid && (
+              <div
+                className="stage__grid"
+                style={{
+                  '--grid-columns': scene.guides.columns,
+                  '--grid-rows': scene.guides.rows,
+                  '--grid-opacity': scene.guides.opacity,
+                }}
+              />
+            )}
             {scene.infoLayer.show && (
               <>
                 <button
@@ -817,8 +879,8 @@ const App = () => {
                   type="button"
                   className={`drag-handle ${draggingTarget === 'title' ? 'is-dragging' : ''}`}
                   style={{
-                    left: `${(scene.infoLayer.titleX ?? 0.18) * 100}%`,
-                    top: `${(scene.infoLayer.titleY ?? 0.36) * 100}%`,
+                    left: `${(scene.infoLayer.titleX ?? AEP_INFO_LAYOUT.titleX) * 100}%`,
+                    top: `${(scene.infoLayer.titleY ?? AEP_INFO_LAYOUT.titleY) * 100}%`,
                   }}
                   onPointerDown={(event) => {
                     event.preventDefault();
@@ -831,8 +893,8 @@ const App = () => {
                   type="button"
                   className={`drag-handle ${draggingTarget === 'meta' ? 'is-dragging' : ''}`}
                   style={{
-                    left: `${(scene.infoLayer.metaX ?? 0.72) * 100}%`,
-                    top: `${(scene.infoLayer.metaY ?? 0.82) * 100}%`,
+                    left: `${(scene.infoLayer.metaX ?? AEP_INFO_LAYOUT.metaX) * 100}%`,
+                    top: `${(scene.infoLayer.metaY ?? AEP_INFO_LAYOUT.metaY) * 100}%`,
                   }}
                   onPointerDown={(event) => {
                     event.preventDefault();
@@ -856,6 +918,22 @@ const App = () => {
                   MAIL
                 </button>
               </>
+            )}
+            {scene.overlay.showLogo && (
+              <button
+                type="button"
+                className={`drag-handle ${draggingTarget === 'logo' ? 'is-dragging' : ''}`}
+                style={{
+                  left: `${scene.overlay.logoX * 100}%`,
+                  top: `${scene.overlay.logoY * 100}%`,
+                }}
+                onPointerDown={(event) => {
+                  event.preventDefault();
+                  setDraggingTarget('logo');
+                }}
+              >
+                LOGO
+              </button>
             )}
           </div>
         </div>
