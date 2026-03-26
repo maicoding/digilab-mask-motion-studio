@@ -54,6 +54,30 @@ export const LOGO_PRESETS = [
 
 export const MOTION_PRESETS = [
   {
+    id: 'clean-loop',
+    label: 'Clean Loop',
+    mask: { turbulence: 0.08, complexity: 0.18, evolutionSpeed: 1, wobble: 0.05, asymmetry: 0.08, breath: 0.03 },
+    imageMotion: { driftX: 0.035, driftY: 0.025, zoom: 0.05, zoomSpeed: 1, rotate: 1, rotateSpeed: 1, orbit: 0.012, orbitCycles: 1 },
+  },
+  {
+    id: 'slow-loop',
+    label: 'Slow Loop',
+    mask: { turbulence: 0.1, complexity: 0.22, evolutionSpeed: 1, wobble: 0.08, asymmetry: 0.1, breath: 0.05 },
+    imageMotion: { driftX: 0.05, driftY: 0.03, zoom: 0.07, zoomSpeed: 1, rotate: 1.5, rotateSpeed: 1, orbit: 0.02, orbitCycles: 1 },
+  },
+  {
+    id: 'wild-loop',
+    label: 'Wild Loop',
+    mask: { turbulence: 0.32, complexity: 0.58, evolutionSpeed: 4, wobble: 0.24, asymmetry: 0.3, breath: 0.09 },
+    imageMotion: { driftX: 0.14, driftY: 0.11, zoom: 0.16, zoomSpeed: 4, rotate: 7, rotateSpeed: 4, orbit: 0.08, orbitCycles: 3 },
+  },
+  {
+    id: 'micro-wobble',
+    label: 'Micro Wobble',
+    mask: { turbulence: 0.06, complexity: 0.16, evolutionSpeed: 2, wobble: 0.035, asymmetry: 0.05, breath: 0.02 },
+    imageMotion: { driftX: 0.018, driftY: 0.015, zoom: 0.03, zoomSpeed: 2, rotate: 0.7, rotateSpeed: 2, orbit: 0.008, orbitCycles: 2 },
+  },
+  {
     id: 'ae-classic',
     label: 'AE Classic',
     mask: { turbulence: 0.22, complexity: 0.46, evolutionSpeed: 2, wobble: 0.13, asymmetry: 0.17, breath: 0.04 },
