@@ -189,6 +189,79 @@ const getAepInfoLayout = (presetId) => {
   };
 };
 
+const getInfoLayoutPresets = (presetId) => {
+  const aep = getAepInfoLayout(presetId);
+
+  return [
+    {
+      id: 'aep-auto',
+      label: 'AEP Auto',
+      values: {
+        ...aep,
+        weight: 500,
+      },
+    },
+    {
+      id: 'event',
+      label: 'Event',
+      values: {
+        ...aep,
+        titleSize: Math.round(aep.titleSize * 1.04),
+        metaSize: Math.round(aep.metaSize * 1.02),
+        weight: 500,
+      },
+    },
+    {
+      id: 'news',
+      label: 'News',
+      values: {
+        ...aep,
+        titleX: Math.max(0.14, aep.titleX - 0.05),
+        titleY: aep.titleY + (presetId === 'story' ? 0.08 : 0.06),
+        metaX: Math.max(0.14, aep.metaX - 0.05),
+        metaY: aep.metaY + (presetId === 'story' ? 0.1 : 0.08),
+        titleSize: Math.round(aep.titleSize * 0.94),
+        metaSize: Math.round(aep.metaSize * 1.06),
+        weight: 500,
+      },
+    },
+    {
+      id: 'cta',
+      label: 'CTA',
+      values: {
+        ...aep,
+        titleX: presetId === 'story' ? 0.18 : 0.14,
+        titleY: presetId === 'story' ? 0.32 : 0.28,
+        metaX: presetId === 'story' ? 0.18 : 0.14,
+        metaY: presetId === 'story' ? 0.72 : 0.68,
+        dateX: aep.dateX,
+        dateY: aep.dateY,
+        emailX: aep.emailX,
+        emailY: aep.emailY,
+        titleSize: Math.round(aep.titleSize * 1.12),
+        metaSize: Math.round(aep.metaSize * 0.98),
+        weight: 600,
+      },
+    },
+    {
+      id: 'minimal',
+      label: 'Minimal',
+      values: {
+        ...aep,
+        titleX: aep.dateX,
+        titleY: presetId === 'story' ? 0.1 : 0.11,
+        metaX: aep.dateX,
+        metaY: presetId === 'story' ? 0.82 : 0.8,
+        titleSize: Math.round(aep.titleSize * 0.82),
+        metaSize: Math.round(aep.metaSize * 0.9),
+        dateSize: Math.round(aep.dateSize * 0.9),
+        emailSize: Math.round(aep.emailSize * 0.9),
+        weight: 500,
+      },
+    },
+  ];
+};
+
 const App = () => {
   const initialScene = useMemo(() => createInitialScene(), []);
   const [scene, setScene] = useState(initialScene);
@@ -385,6 +458,7 @@ const App = () => {
     const layout = getAepInfoLayout(scene.presetId);
     setScene((current) => ({
       ...current,
+      infoLayoutPresetId: 'aep-auto',
       infoLayer: {
         ...current.infoLayer,
         dateX: layout.dateX,
@@ -404,6 +478,26 @@ const App = () => {
         ...current.overlay,
         logoX: layout.logoX,
         logoY: layout.logoY,
+      },
+    }));
+  };
+
+  const applyInfoLayoutPreset = (presetId) => {
+    const layoutPreset = getInfoLayoutPresets(scene.presetId).find((item) => item.id === presetId);
+    if (!layoutPreset) {
+      return;
+    }
+    setScene((current) => ({
+      ...current,
+      infoLayoutPresetId: presetId,
+      infoLayer: {
+        ...current.infoLayer,
+        ...layoutPreset.values,
+      },
+      overlay: {
+        ...current.overlay,
+        logoX: layoutPreset.values.logoX,
+        logoY: layoutPreset.values.logoY,
       },
     }));
   };
@@ -731,7 +825,18 @@ const App = () => {
 
         <Section title="Info Text" icon={Settings2} defaultOpen={false}>
           <ToggleField label="Infos anzeigen" checked={scene.infoLayer.show} onChange={(value) => updateScene('infoLayer.show', value)} />
+          <SelectField
+            label="Text Layout Preset"
+            value={scene.infoLayoutPresetId ?? 'aep-auto'}
+            options={getInfoLayoutPresets(scene.presetId).map((item) => ({ value: item.id, label: item.label }))}
+            onChange={applyInfoLayoutPreset}
+          />
           <div className="button-row">
+            {getInfoLayoutPresets(scene.presetId).map((item) => (
+              <button key={item.id} className="ghost-button small-chip" type="button" onClick={() => applyInfoLayoutPreset(item.id)}>
+                {item.label}
+              </button>
+            ))}
             <button className="ghost-button" type="button" onClick={applyAepInfoLayout}>
               <RotateCcw size={15} />
               AEP Layout

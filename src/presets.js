@@ -287,6 +287,7 @@ export const createInitialScene = () => ({
   presetId: 'story',
   colorPresetId: 'pink-lila',
   motionPresetId: 'ae-classic',
+  infoLayoutPresetId: 'aep-auto',
   backgroundColor: '#D562EB',
   useCustomBackground: false,
   imageSrc: '',
