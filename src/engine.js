@@ -222,24 +222,27 @@ const drawInfoLayer = (ctx, width, height, infoLayer) => {
   const metaSize = Math.max(12, Math.round(infoLayer.metaSize));
   const emailSize = Math.max(12, Math.round(infoLayer.emailSize));
 
-  const baseX = width * infoLayer.eventX;
-  const baseY = height * infoLayer.eventY;
-  const contentX = baseX + width * 0.22;
+  const dateX = width * (infoLayer.dateX ?? infoLayer.eventX ?? 0.04);
+  const dateY = height * (infoLayer.dateY ?? infoLayer.eventY ?? 0.05);
+  const titleX = width * (infoLayer.titleX ?? ((infoLayer.eventX ?? 0.04) + 0.22));
+  const titleY = height * (infoLayer.titleY ?? infoLayer.eventY ?? 0.05);
+  const metaX = width * (infoLayer.metaX ?? titleX / width);
+  const metaY = height * (infoLayer.metaY ?? ((infoLayer.eventY ?? 0.05) + (titleSize * 2.08) / height));
 
   ctx.fillStyle = infoLayer.dateColor;
   ctx.font = `${infoLayer.weight ?? 500} ${dateSize}px "Degular", "Helvetica Neue", Helvetica, Arial, sans-serif`;
-  ctx.fillText(infoLayer.date, baseX, baseY);
+  ctx.fillText(infoLayer.date, dateX, dateY);
 
   ctx.fillStyle = infoLayer.titleColor;
   ctx.font = `${Math.min(700, (infoLayer.weight ?? 500) + 100)} ${titleSize}px "Degular", "Helvetica Neue", Helvetica, Arial, sans-serif`;
-  ctx.fillText(infoLayer.title1, contentX, baseY);
-  ctx.fillText(infoLayer.title2, contentX, baseY + titleSize * 0.9);
+  ctx.fillText(infoLayer.title1, titleX, titleY);
+  ctx.fillText(infoLayer.title2, titleX, titleY + titleSize * 0.9);
 
   ctx.fillStyle = infoLayer.metaColor;
   ctx.font = `${infoLayer.weight ?? 500} ${metaSize}px "Degular", "Helvetica Neue", Helvetica, Arial, sans-serif`;
-  ctx.fillText(infoLayer.start, contentX, baseY + titleSize * 2.08);
-  ctx.fillText(infoLayer.duration, contentX, baseY + titleSize * 2.08 + metaSize * 1.08);
-  ctx.fillText(infoLayer.location, contentX, baseY + titleSize * 2.08 + metaSize * 2.16);
+  ctx.fillText(infoLayer.start, metaX, metaY);
+  ctx.fillText(infoLayer.duration, metaX, metaY + metaSize * 1.08);
+  ctx.fillText(infoLayer.location, metaX, metaY + metaSize * 2.16);
 
   ctx.fillStyle = infoLayer.emailColor;
   ctx.font = `${infoLayer.weight ?? 500} ${emailSize}px "Degular", "Helvetica Neue", Helvetica, Arial, sans-serif`;
