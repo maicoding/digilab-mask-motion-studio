@@ -413,20 +413,24 @@ textarea {
   display: block;
 }
 
-.text-dragger {
+.drag-handle {
   position: absolute;
   transform: translate(-50%, -50%);
-  max-width: 60%;
-  white-space: pre-line;
-  line-height: 1.04;
-  font-family: 'Degular', 'Helvetica Neue', Helvetica, Arial, sans-serif;
   cursor: move;
-  user-select: none;
-  text-shadow: 0 0 16px rgba(0, 0, 0, 0.16);
+  min-height: 28px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
 }
 
-.text-dragger.is-dragging {
-  opacity: 0.82;
+.drag-handle.is-dragging {
+  background: rgba(255, 245, 0, 0.4);
+  color: #111;
 }
 
 .reference-card {

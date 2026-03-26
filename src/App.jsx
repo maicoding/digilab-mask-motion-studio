@@ -138,7 +138,7 @@ const App = () => {
   const [assetVersion, setAssetVersion] = useState(0);
   const [previewZoom, setPreviewZoom] = useState(0.72);
   const [isRecording, setIsRecording] = useState(false);
-  const [draggingText, setDraggingText] = useState(false);
+  const [draggingTarget, setDraggingTarget] = useState(null);
   const canvasRef = useRef(null);
   const stageRef = useRef(null);
   const imageCacheRef = useRef(new Map());
@@ -193,9 +193,12 @@ const App = () => {
         ...current.overlay,
         logoTint: scheme.accent,
       },
-      textLayer: {
-        ...current.textLayer,
-        color: scheme.accent,
+      infoLayer: {
+        ...current.infoLayer,
+        titleColor: scheme.accent,
+        metaColor: scheme.accent,
+        emailColor: scheme.accent,
+        dateColor: scheme.accent,
       },
     }));
   };
@@ -633,15 +636,57 @@ const App = () => {
           </div>
         </Section>
 
-        <Section title="Text Layer" icon={Settings2} defaultOpen={false}>
-          <ToggleField label="Text anzeigen" checked={scene.textLayer.show} onChange={(value) => updateScene('textLayer.show', value)} />
+        <Section title="Info Text" icon={Settings2} defaultOpen={false}>
+          <ToggleField label="Infos anzeigen" checked={scene.infoLayer.show} onChange={(value) => updateScene('infoLayer.show', value)} />
+          <div className="field-grid">
+            <label className="field">
+              <div className="field__head">
+                <span>Datum</span>
+              </div>
+              <input type="text" value={scene.infoLayer.date} onChange={(event) => updateScene('infoLayer.date', event.target.value)} />
+            </label>
+            <label className="field">
+              <div className="field__head">
+                <span>Mail</span>
+              </div>
+              <input type="text" value={scene.infoLayer.email} onChange={(event) => updateScene('infoLayer.email', event.target.value)} />
+            </label>
+          </div>
           <label className="field">
             <div className="field__head">
-              <span>Text</span>
+              <span>Titel Zeile 1</span>
             </div>
-            <textarea value={scene.textLayer.content} onChange={(event) => updateScene('textLayer.content', event.target.value)} rows={3} />
+            <input type="text" value={scene.infoLayer.title1} onChange={(event) => updateScene('infoLayer.title1', event.target.value)} />
           </label>
-          <ColorField label="Textfarbe" value={scene.textLayer.color} onChange={(value) => updateScene('textLayer.color', value)} />
+          <label className="field">
+            <div className="field__head">
+              <span>Titel Zeile 2</span>
+            </div>
+            <input type="text" value={scene.infoLayer.title2} onChange={(event) => updateScene('infoLayer.title2', event.target.value)} />
+          </label>
+          <div className="field-grid">
+            <label className="field">
+              <div className="field__head">
+                <span>Start</span>
+              </div>
+              <input type="text" value={scene.infoLayer.start} onChange={(event) => updateScene('infoLayer.start', event.target.value)} />
+            </label>
+            <label className="field">
+              <div className="field__head">
+                <span>Dauer</span>
+              </div>
+              <input type="text" value={scene.infoLayer.duration} onChange={(event) => updateScene('infoLayer.duration', event.target.value)} />
+            </label>
+          </div>
+          <label className="field">
+            <div className="field__head">
+              <span>Ort</span>
+            </div>
+            <input type="text" value={scene.infoLayer.location} onChange={(event) => updateScene('infoLayer.location', event.target.value)} />
+          </label>
+          <ColorField label="Titel Farbe" value={scene.infoLayer.titleColor} onChange={(value) => updateScene('infoLayer.titleColor', value)} />
+          <ColorField label="Meta Farbe" value={scene.infoLayer.metaColor} onChange={(value) => updateScene('infoLayer.metaColor', value)} />
+          <ColorField label="Mail Farbe" value={scene.infoLayer.emailColor} onChange={(value) => updateScene('infoLayer.emailColor', value)} />
           <div className="swatch-row">
             {TEXT_SWATCHES.map((color) => (
               <button
@@ -649,29 +694,33 @@ const App = () => {
                 type="button"
                 className="swatch"
                 style={{ background: color }}
-                onClick={() => updateScene('textLayer.color', color)}
+                onClick={() => {
+                  updateScene('infoLayer.titleColor', color);
+                  updateScene('infoLayer.metaColor', color);
+                  updateScene('infoLayer.emailColor', color);
+                  updateScene('infoLayer.dateColor', color);
+                }}
                 aria-label={color}
               />
             ))}
           </div>
           <div className="field-grid">
-            <SliderField label="Font Size" value={scene.textLayer.size} min={16} max={96} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('textLayer.size', value)} />
-            <SliderField label="Weight" value={scene.textLayer.weight} min={300} max={700} step={100} format={(value) => `${Math.round(value)}`} onChange={(value) => updateScene('textLayer.weight', value)} />
+            <SliderField label="Datum Size" value={scene.infoLayer.dateSize} min={18} max={88} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('infoLayer.dateSize', value)} />
+            <SliderField label="Titel Size" value={scene.infoLayer.titleSize} min={20} max={120} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('infoLayer.titleSize', value)} />
           </div>
           <div className="field-grid">
-            <SliderField label="Text X" value={scene.textLayer.x} min={0.02} max={0.98} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('textLayer.x', value)} />
-            <SliderField label="Text Y" value={scene.textLayer.y} min={0.02} max={0.98} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('textLayer.y', value)} />
+            <SliderField label="Meta Size" value={scene.infoLayer.metaSize} min={14} max={64} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('infoLayer.metaSize', value)} />
+            <SliderField label="Mail Size" value={scene.infoLayer.emailSize} min={16} max={72} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('infoLayer.emailSize', value)} />
           </div>
-          <SelectField
-            label="Ausrichtung"
-            value={scene.textLayer.align}
-            options={[
-              { value: 'left', label: 'Links' },
-              { value: 'center', label: 'Zentriert' },
-              { value: 'right', label: 'Rechts' },
-            ]}
-            onChange={(value) => updateScene('textLayer.align', value)}
-          />
+          <div className="field-grid">
+            <SliderField label="Info X" value={scene.infoLayer.eventX} min={0.01} max={0.7} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.eventX', value)} />
+            <SliderField label="Info Y" value={scene.infoLayer.eventY} min={0.01} max={0.7} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.eventY', value)} />
+          </div>
+          <div className="field-grid">
+            <SliderField label="Mail X" value={scene.infoLayer.emailX} min={0.01} max={0.9} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.emailX', value)} />
+            <SliderField label="Mail Y" value={scene.infoLayer.emailY} min={0.01} max={0.98} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.emailY', value)} />
+          </div>
+          <SliderField label="Weight" value={scene.infoLayer.weight} min={300} max={700} step={100} format={(value) => `${Math.round(value)}`} onChange={(value) => updateScene('infoLayer.weight', value)} />
         </Section>
 
         <Section title="Export" icon={Film} defaultOpen={false}>
@@ -706,15 +755,22 @@ const App = () => {
               height: preset.height * previewScale,
             }}
             onPointerMove={(event) => {
-              if (!draggingText) {
+              if (!draggingTarget) {
                 return;
               }
               const rect = event.currentTarget.getBoundingClientRect();
-              updateScene('textLayer.x', Math.min(0.98, Math.max(0.02, (event.clientX - rect.left) / rect.width)));
-              updateScene('textLayer.y', Math.min(0.98, Math.max(0.02, (event.clientY - rect.top) / rect.height)));
+              const x = Math.min(0.98, Math.max(0.01, (event.clientX - rect.left) / rect.width));
+              const y = Math.min(0.98, Math.max(0.01, (event.clientY - rect.top) / rect.height));
+              if (draggingTarget === 'event') {
+                updateScene('infoLayer.eventX', x);
+                updateScene('infoLayer.eventY', y);
+              } else if (draggingTarget === 'email') {
+                updateScene('infoLayer.emailX', x);
+                updateScene('infoLayer.emailY', y);
+              }
             }}
-            onPointerUp={() => setDraggingText(false)}
-            onPointerLeave={() => setDraggingText(false)}
+            onPointerUp={() => setDraggingTarget(null)}
+            onPointerLeave={() => setDraggingTarget(null)}
           >
             <canvas
               ref={canvasRef}
@@ -726,24 +782,37 @@ const App = () => {
                 height: preset.height * previewScale,
               }}
             />
-            {scene.textLayer.show && (
-              <div
-                className={`text-dragger ${draggingText ? 'is-dragging' : ''}`}
-                style={{
-                  left: `${scene.textLayer.x * 100}%`,
-                  top: `${scene.textLayer.y * 100}%`,
-                  color: scene.textLayer.color,
-                  fontSize: `${scene.textLayer.size * previewScale}px`,
-                  fontWeight: scene.textLayer.weight,
-                  textAlign: scene.textLayer.align,
-                }}
-                onPointerDown={(event) => {
-                  event.preventDefault();
-                  setDraggingText(true);
-                }}
-              >
-                {scene.textLayer.content || 'digilab.ai@fh-dortmund.de'}
-              </div>
+            {scene.infoLayer.show && (
+              <>
+                <button
+                  type="button"
+                  className={`drag-handle ${draggingTarget === 'event' ? 'is-dragging' : ''}`}
+                  style={{
+                    left: `${scene.infoLayer.eventX * 100}%`,
+                    top: `${scene.infoLayer.eventY * 100}%`,
+                  }}
+                  onPointerDown={(event) => {
+                    event.preventDefault();
+                    setDraggingTarget('event');
+                  }}
+                >
+                  INFO
+                </button>
+                <button
+                  type="button"
+                  className={`drag-handle ${draggingTarget === 'email' ? 'is-dragging' : ''}`}
+                  style={{
+                    left: `${scene.infoLayer.emailX * 100}%`,
+                    top: `${scene.infoLayer.emailY * 100}%`,
+                  }}
+                  onPointerDown={(event) => {
+                    event.preventDefault();
+                    setDraggingTarget('email');
+                  }}
+                >
+                  MAIL
+                </button>
+              </>
             )}
           </div>
         </div>

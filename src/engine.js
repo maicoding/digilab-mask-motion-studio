@@ -209,22 +209,41 @@ const drawLogo = (ctx, width, height, overlay, logoImage) => {
   ctx.drawImage(renderTarget, x, y, logoWidth, logoHeight);
 };
 
-const drawTextLayer = (ctx, width, height, textLayer) => {
-  if (!textLayer?.show || !textLayer.content) {
+const drawInfoLayer = (ctx, width, height, infoLayer) => {
+  if (!infoLayer?.show) {
     return;
   }
-  const fontSize = Math.max(12, Math.round(textLayer.size));
   ctx.save();
-  ctx.fillStyle = textLayer.color;
   ctx.textBaseline = 'top';
-  ctx.textAlign = textLayer.align ?? 'left';
-  ctx.font = `${textLayer.weight ?? 500} ${fontSize}px "Degular", "Helvetica Neue", Helvetica, Arial, sans-serif`;
-  const x = width * textLayer.x;
-  const y = height * textLayer.y;
-  const lines = String(textLayer.content).split('\n');
-  lines.forEach((line, index) => {
-    ctx.fillText(line, x, y + index * fontSize * 1.04);
-  });
+  ctx.textAlign = 'left';
+
+  const dateSize = Math.max(14, Math.round(infoLayer.dateSize));
+  const titleSize = Math.max(18, Math.round(infoLayer.titleSize));
+  const metaSize = Math.max(12, Math.round(infoLayer.metaSize));
+  const emailSize = Math.max(12, Math.round(infoLayer.emailSize));
+
+  const baseX = width * infoLayer.eventX;
+  const baseY = height * infoLayer.eventY;
+  const contentX = baseX + width * 0.22;
+
+  ctx.fillStyle = infoLayer.dateColor;
+  ctx.font = `${infoLayer.weight ?? 500} ${dateSize}px "Degular", "Helvetica Neue", Helvetica, Arial, sans-serif`;
+  ctx.fillText(infoLayer.date, baseX, baseY);
+
+  ctx.fillStyle = infoLayer.titleColor;
+  ctx.font = `${Math.min(700, (infoLayer.weight ?? 500) + 100)} ${titleSize}px "Degular", "Helvetica Neue", Helvetica, Arial, sans-serif`;
+  ctx.fillText(infoLayer.title1, contentX, baseY);
+  ctx.fillText(infoLayer.title2, contentX, baseY + titleSize * 0.9);
+
+  ctx.fillStyle = infoLayer.metaColor;
+  ctx.font = `${infoLayer.weight ?? 500} ${metaSize}px "Degular", "Helvetica Neue", Helvetica, Arial, sans-serif`;
+  ctx.fillText(infoLayer.start, contentX, baseY + titleSize * 2.08);
+  ctx.fillText(infoLayer.duration, contentX, baseY + titleSize * 2.08 + metaSize * 1.08);
+  ctx.fillText(infoLayer.location, contentX, baseY + titleSize * 2.08 + metaSize * 2.16);
+
+  ctx.fillStyle = infoLayer.emailColor;
+  ctx.font = `${infoLayer.weight ?? 500} ${emailSize}px "Degular", "Helvetica Neue", Helvetica, Arial, sans-serif`;
+  ctx.fillText(infoLayer.email, width * infoLayer.emailX, height * infoLayer.emailY);
   ctx.restore();
 };
 
@@ -242,7 +261,7 @@ export const renderScene = ({ ctx, width, height, scene, colors, time, getImage 
   const image = getImage(scene.imageSrc);
   drawMaskedImage(ctx, bounds, scene, phase, image, colors);
 
-  drawTextLayer(ctx, width, height, scene.textLayer);
+  drawInfoLayer(ctx, width, height, scene.infoLayer);
 
   const logoImage = getImage(scene.overlay.logoSrc);
   drawLogo(ctx, width, height, scene.overlay, logoImage);
