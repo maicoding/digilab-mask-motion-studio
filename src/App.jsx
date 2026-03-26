@@ -197,7 +197,9 @@ const App = () => {
         ...current.stage,
         width: presetEntry.width,
         height: presetEntry.height,
+        y: presetEntry.stageY ?? current.stage.y,
       },
+      presetId: presetEntry.format ?? current.presetId,
     }));
   };
 
@@ -449,6 +451,13 @@ const App = () => {
             options={MASK_PRESETS.map((item) => ({ value: item.id, label: item.label }))}
             onChange={applyMaskPreset}
           />
+          <div className="button-row">
+            {MASK_PRESETS.filter((item) => item.id !== 'wide-form').map((item) => (
+              <button key={item.id} type="button" className="ghost-button small-chip" onClick={() => applyMaskPreset(item.id)}>
+                {item.family} {item.format === 'story' ? 'Story' : item.format === 'square' ? 'Post' : item.format}
+              </button>
+            ))}
+          </div>
           <div className="field-grid">
             <SliderField label="Shape Scale" value={scene.mask.shapeScale} min={0.4} max={1.2} step={0.01} format={(value) => `${value.toFixed(2)}`} onChange={(value) => updateScene('mask.shapeScale', value)} />
             <SliderField label="Pixel Size" value={scene.mask.pixelSize} min={18} max={60} step={1} format={(value) => `${Math.round(value)}`} onChange={(value) => updateScene('mask.pixelSize', value)} />
@@ -561,12 +570,18 @@ const App = () => {
         <div className="reference-card">
           <div>
             <div className="eyebrow">Referenzen</div>
-            <h3>Story- und Post-Form</h3>
-            <p>Die neue Engine ist an deinen vorhandenen Story- und Post-Masken aus After Effects ausgerichtet und bildet die wabernde Bild-Maskierung als flexibles Web-System nach.</p>
+            <h3>Vier Form-Familien fuer Post und Story</h3>
+            <p>Die Engine bildet jetzt alle vier Maskenfamilien aus deinem Instagram-Ordner nach. Die Presets synchronisieren Format und Grundverhalten direkt auf Post oder Story.</p>
           </div>
           <div className="reference-grid">
             <img src="/references/story-form-01.png" alt="Story Form Referenz" />
-            <img src="/references/post-form-01-template03.png" alt="Post Form Referenz" />
+            <img src="/references/story-form-02.png" alt="Story Form 02 Referenz" />
+            <img src="/references/story-form-03.png" alt="Story Form 03 Referenz" />
+            <img src="/references/story-form-04.png" alt="Story Form 04 Referenz" />
+            <img src="/references/post-form-01-template03.png" alt="Post Form 01 Referenz" />
+            <img src="/references/post-form-02.png" alt="Post Form 02 Referenz" />
+            <img src="/references/post-form-03.png" alt="Post Form 03 Referenz" />
+            <img src="/references/post-form-04.png" alt="Post Form 04 Referenz" />
           </div>
         </div>
       </main>
