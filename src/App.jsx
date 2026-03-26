@@ -132,17 +132,61 @@ const TEXT_SWATCHES = [
   '#FF66FF',
 ];
 
-const AEP_INFO_LAYOUT = {
-  dateX: 0.03,
-  dateY: 0.06,
-  titleX: 0.25,
-  titleY: 0.06,
-  metaX: 0.25,
-  metaY: 0.16,
-  emailX: 0.03,
-  emailY: 0.92,
-  logoX: 0.92,
-  logoY: 0.94,
+const getAepInfoLayout = (presetId) => {
+  if (presetId === 'story') {
+    return {
+      dateX: 0.075,
+      dateY: 0.042,
+      titleX: 0.315,
+      titleY: 0.042,
+      metaX: 0.315,
+      metaY: 0.155,
+      emailX: 0.075,
+      emailY: 0.925,
+      logoX: 0.92,
+      logoY: 0.94,
+      dateSize: 52,
+      titleSize: 62,
+      metaSize: 28,
+      emailSize: 32,
+    };
+  }
+
+  if (presetId === 'landscape') {
+    return {
+      dateX: 0.05,
+      dateY: 0.06,
+      titleX: 0.22,
+      titleY: 0.06,
+      metaX: 0.22,
+      metaY: 0.19,
+      emailX: 0.05,
+      emailY: 0.9,
+      logoX: 0.94,
+      logoY: 0.9,
+      dateSize: 36,
+      titleSize: 48,
+      metaSize: 20,
+      emailSize: 22,
+    };
+  }
+
+  return {
+    dateX: 0.032,
+    dateY: 0.031,
+    titleX: 0.254,
+    titleY: 0.031,
+    metaX: 0.254,
+    metaY: 0.138,
+    emailX: 0.032,
+    emailY: 0.907,
+    logoX: 0.92,
+    logoY: 0.94,
+    dateSize: 48,
+    titleSize: 56,
+    metaSize: 26,
+    emailSize: 32,
+  };
 };
 
 const App = () => {
@@ -338,23 +382,28 @@ const App = () => {
   };
 
   const applyAepInfoLayout = () => {
+    const layout = getAepInfoLayout(scene.presetId);
     setScene((current) => ({
       ...current,
       infoLayer: {
         ...current.infoLayer,
-        dateX: AEP_INFO_LAYOUT.dateX,
-        dateY: AEP_INFO_LAYOUT.dateY,
-        titleX: AEP_INFO_LAYOUT.titleX,
-        titleY: AEP_INFO_LAYOUT.titleY,
-        metaX: AEP_INFO_LAYOUT.metaX,
-        metaY: AEP_INFO_LAYOUT.metaY,
-        emailX: AEP_INFO_LAYOUT.emailX,
-        emailY: AEP_INFO_LAYOUT.emailY,
+        dateX: layout.dateX,
+        dateY: layout.dateY,
+        titleX: layout.titleX,
+        titleY: layout.titleY,
+        metaX: layout.metaX,
+        metaY: layout.metaY,
+        emailX: layout.emailX,
+        emailY: layout.emailY,
+        dateSize: layout.dateSize,
+        titleSize: layout.titleSize,
+        metaSize: layout.metaSize,
+        emailSize: layout.emailSize,
       },
       overlay: {
         ...current.overlay,
-        logoX: AEP_INFO_LAYOUT.logoX,
-        logoY: AEP_INFO_LAYOUT.logoY,
+        logoX: layout.logoX,
+        logoY: layout.logoY,
       },
     }));
   };
@@ -767,12 +816,12 @@ const App = () => {
             <SliderField label="Datum Y" value={scene.infoLayer.dateY ?? scene.infoLayer.eventY} min={0.01} max={0.9} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.dateY', value)} />
           </div>
           <div className="field-grid">
-            <SliderField label="Titel X" value={scene.infoLayer.titleX ?? AEP_INFO_LAYOUT.titleX} min={0.01} max={0.95} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.titleX', value)} />
-            <SliderField label="Titel Y" value={scene.infoLayer.titleY ?? AEP_INFO_LAYOUT.titleY} min={0.01} max={0.9} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.titleY', value)} />
+            <SliderField label="Titel X" value={scene.infoLayer.titleX ?? getAepInfoLayout(scene.presetId).titleX} min={0.01} max={0.95} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.titleX', value)} />
+            <SliderField label="Titel Y" value={scene.infoLayer.titleY ?? getAepInfoLayout(scene.presetId).titleY} min={0.01} max={0.9} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.titleY', value)} />
           </div>
           <div className="field-grid">
-            <SliderField label="Meta X" value={scene.infoLayer.metaX ?? AEP_INFO_LAYOUT.metaX} min={0.01} max={0.95} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.metaX', value)} />
-            <SliderField label="Meta Y" value={scene.infoLayer.metaY ?? AEP_INFO_LAYOUT.metaY} min={0.01} max={0.95} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.metaY', value)} />
+            <SliderField label="Meta X" value={scene.infoLayer.metaX ?? getAepInfoLayout(scene.presetId).metaX} min={0.01} max={0.95} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.metaX', value)} />
+            <SliderField label="Meta Y" value={scene.infoLayer.metaY ?? getAepInfoLayout(scene.presetId).metaY} min={0.01} max={0.95} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.metaY', value)} />
           </div>
           <div className="field-grid">
             <SliderField label="Mail X" value={scene.infoLayer.emailX} min={0.01} max={0.9} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.emailX', value)} />
@@ -879,8 +928,8 @@ const App = () => {
                   type="button"
                   className={`drag-handle ${draggingTarget === 'title' ? 'is-dragging' : ''}`}
                   style={{
-                    left: `${(scene.infoLayer.titleX ?? AEP_INFO_LAYOUT.titleX) * 100}%`,
-                    top: `${(scene.infoLayer.titleY ?? AEP_INFO_LAYOUT.titleY) * 100}%`,
+                    left: `${(scene.infoLayer.titleX ?? getAepInfoLayout(scene.presetId).titleX) * 100}%`,
+                    top: `${(scene.infoLayer.titleY ?? getAepInfoLayout(scene.presetId).titleY) * 100}%`,
                   }}
                   onPointerDown={(event) => {
                     event.preventDefault();
@@ -893,8 +942,8 @@ const App = () => {
                   type="button"
                   className={`drag-handle ${draggingTarget === 'meta' ? 'is-dragging' : ''}`}
                   style={{
-                    left: `${(scene.infoLayer.metaX ?? AEP_INFO_LAYOUT.metaX) * 100}%`,
-                    top: `${(scene.infoLayer.metaY ?? AEP_INFO_LAYOUT.metaY) * 100}%`,
+                    left: `${(scene.infoLayer.metaX ?? getAepInfoLayout(scene.presetId).metaX) * 100}%`,
+                    top: `${(scene.infoLayer.metaY ?? getAepInfoLayout(scene.presetId).metaY) * 100}%`,
                   }}
                   onPointerDown={(event) => {
                     event.preventDefault();
