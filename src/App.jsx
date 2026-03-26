@@ -15,6 +15,7 @@ import {
   COLOR_PRESETS,
   LOGO_PRESETS,
   MASK_PRESETS,
+  MOTION_PRESETS,
   createInitialScene,
 } from './presets.js';
 import { renderScene } from './engine.js';
@@ -200,6 +201,25 @@ const App = () => {
         y: presetEntry.stageY ?? current.stage.y,
       },
       presetId: presetEntry.format ?? current.presetId,
+    }));
+  };
+
+  const applyMotionPreset = (presetId) => {
+    const presetEntry = MOTION_PRESETS.find((item) => item.id === presetId);
+    if (!presetEntry) {
+      return;
+    }
+    setScene((current) => ({
+      ...current,
+      motionPresetId: presetId,
+      mask: {
+        ...current.mask,
+        ...presetEntry.mask,
+      },
+      imageMotion: {
+        ...current.imageMotion,
+        ...presetEntry.imageMotion,
+      },
     }));
   };
 
@@ -397,6 +417,22 @@ const App = () => {
           </div>
         </Section>
 
+        <Section title="Motion Modes" icon={Film}>
+          <SelectField
+            label="Motion Preset"
+            value={scene.motionPresetId}
+            options={MOTION_PRESETS.map((item) => ({ value: item.id, label: item.label }))}
+            onChange={applyMotionPreset}
+          />
+          <div className="button-row">
+            {MOTION_PRESETS.map((item) => (
+              <button key={item.id} type="button" className="ghost-button small-chip" onClick={() => applyMotionPreset(item.id)}>
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </Section>
+
         <Section title="Colors & Stage" icon={Palette}>
           <SelectField
             label="CI Preset"
@@ -442,6 +478,7 @@ const App = () => {
             <SliderField label="Rotate" value={scene.imageMotion.rotate} min={0} max={15} step={0.5} format={(value) => `${value.toFixed(1)}°`} onChange={(value) => updateScene('imageMotion.rotate', value)} />
             <SliderField label="Rotate Speed" value={scene.imageMotion.rotateSpeed} min={0.01} max={0.4} step={0.01} format={(value) => `${value.toFixed(2)}`} onChange={(value) => updateScene('imageMotion.rotateSpeed', value)} />
           </div>
+          <SliderField label="Orbit" value={scene.imageMotion.orbit ?? 0} min={0} max={0.12} step={0.005} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('imageMotion.orbit', value)} />
         </Section>
 
         <Section title="Mask & Turbulence" icon={SquareDashedMousePointer}>
@@ -472,7 +509,11 @@ const App = () => {
           </div>
           <div className="field-grid">
             <SliderField label="Asymmetry" value={scene.mask.asymmetry} min={0} max={0.4} step={0.01} onChange={(value) => updateScene('mask.asymmetry', value)} />
+            <SliderField label="Breath" value={scene.mask.breath ?? 0} min={0} max={0.18} step={0.01} onChange={(value) => updateScene('mask.breath', value)} />
+          </div>
+          <div className="field-grid">
             <SliderField label="Points" value={scene.mask.points} min={8} max={30} step={1} format={(value) => `${Math.round(value)}`} onChange={(value) => updateScene('mask.points', value)} />
+            <div />
           </div>
           <div className="field-grid">
             <SliderField label="Stretch X" value={scene.mask.squishX} min={0.7} max={1.4} step={0.01} onChange={(value) => updateScene('mask.squishX', value)} />

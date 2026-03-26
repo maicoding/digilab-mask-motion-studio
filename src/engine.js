@@ -80,12 +80,13 @@ const getProcessedAsset = (image, settings) => {
 const makeMaskPolygon = (mask, time) => {
   const points = [];
   const total = Math.max(8, mask.points);
+  const breath = 1 + Math.sin(time * Math.max(0.04, mask.evolutionSpeed) * 4 + mask.seed * 0.001) * (mask.breath ?? 0);
   for (let index = 0; index < total; index += 1) {
     const angle = (index / total) * Math.PI * 2;
     const waveA = Math.sin(angle * 2 + time * mask.evolutionSpeed * 6 + mask.seed * 0.0021) * mask.asymmetry;
     const waveB = Math.sin(angle * (2 + mask.complexity * 10) - time * mask.evolutionSpeed * 4 + index * 0.27) * mask.wobble;
     const waveC = (hash(mask.seed + index * 8.3) - 0.5) * mask.turbulence * 0.8;
-    const radius = mask.shapeScale * clamp(0.78 + waveA + waveB + waveC, 0.36, 1.18);
+    const radius = mask.shapeScale * breath * clamp(0.78 + waveA + waveB + waveC, 0.36, 1.18);
     points.push({
       x: Math.cos(angle) * radius * mask.squishX,
       y: Math.sin(angle) * radius * mask.squishY,
@@ -149,8 +150,8 @@ const drawMaskedImage = (ctx, bounds, scene, time, image, colors) => {
   contentCtx.fillRect(0, 0, contentCanvas.width, contentCanvas.height);
 
   if (image) {
-    const driftX = Math.sin(time * 1.3) * scene.imageMotion.driftX;
-    const driftY = Math.cos(time * 1.17) * scene.imageMotion.driftY;
+    const driftX = Math.sin(time * 1.3) * scene.imageMotion.driftX + Math.sin(time * 0.73 + 0.4) * (scene.imageMotion.orbit ?? 0);
+    const driftY = Math.cos(time * 1.17) * scene.imageMotion.driftY + Math.cos(time * 0.91 + 0.9) * (scene.imageMotion.orbit ?? 0);
     const zoom = 1 + Math.sin(time * scene.imageMotion.zoomSpeed * 6) * scene.imageMotion.zoom;
     const rotation = Math.sin(time * scene.imageMotion.rotateSpeed * 6) * scene.imageMotion.rotate;
     const fitScale = Math.max(contentCanvas.width / image.width, contentCanvas.height / image.height) * scene.imageMotion.scale * zoom;

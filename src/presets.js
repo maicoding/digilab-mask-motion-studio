@@ -52,6 +52,39 @@ export const LOGO_PRESETS = [
   },
 ];
 
+export const MOTION_PRESETS = [
+  {
+    id: 'ae-classic',
+    label: 'AE Classic',
+    mask: { turbulence: 0.22, complexity: 0.46, evolutionSpeed: 0.22, wobble: 0.13, asymmetry: 0.17, breath: 0.04 },
+    imageMotion: { driftX: 0.08, driftY: 0.05, zoom: 0.12, zoomSpeed: 0.18, rotate: 3, rotateSpeed: 0.08, orbit: 0.03 },
+  },
+  {
+    id: 'soft-float',
+    label: 'Soft Float',
+    mask: { turbulence: 0.12, complexity: 0.28, evolutionSpeed: 0.12, wobble: 0.07, asymmetry: 0.1, breath: 0.06 },
+    imageMotion: { driftX: 0.04, driftY: 0.025, zoom: 0.08, zoomSpeed: 0.12, rotate: 1.5, rotateSpeed: 0.05, orbit: 0.02 },
+  },
+  {
+    id: 'liquid-roll',
+    label: 'Liquid Roll',
+    mask: { turbulence: 0.2, complexity: 0.34, evolutionSpeed: 0.18, wobble: 0.12, asymmetry: 0.24, breath: 0.05 },
+    imageMotion: { driftX: 0.09, driftY: 0.08, zoom: 0.1, zoomSpeed: 0.17, rotate: 4.5, rotateSpeed: 0.14, orbit: 0.05 },
+  },
+  {
+    id: 'rubber-pulse',
+    label: 'Rubber Pulse',
+    mask: { turbulence: 0.16, complexity: 0.24, evolutionSpeed: 0.2, wobble: 0.18, asymmetry: 0.14, breath: 0.1 },
+    imageMotion: { driftX: 0.03, driftY: 0.03, zoom: 0.18, zoomSpeed: 0.3, rotate: 1.2, rotateSpeed: 0.06, orbit: 0.025 },
+  },
+  {
+    id: 'storm-wave',
+    label: 'Storm Wave',
+    mask: { turbulence: 0.34, complexity: 0.6, evolutionSpeed: 0.34, wobble: 0.22, asymmetry: 0.28, breath: 0.07 },
+    imageMotion: { driftX: 0.14, driftY: 0.09, zoom: 0.14, zoomSpeed: 0.24, rotate: 6, rotateSpeed: 0.19, orbit: 0.07 },
+  },
+];
+
 export const MASK_PRESETS = [
   {
     id: 'post-form-01',
@@ -229,6 +262,7 @@ export const MASK_PRESETS = [
 export const createInitialScene = () => ({
   presetId: 'story',
   colorPresetId: 'pink-lila',
+  motionPresetId: 'ae-classic',
   backgroundColor: '#D562EB',
   useCustomBackground: false,
   imageSrc: '',
@@ -263,6 +297,7 @@ export const createInitialScene = () => ({
     evolutionSpeed: 0.22,
     wobble: 0.13,
     asymmetry: 0.17,
+    breath: 0.04,
     seed: 4201,
     xOffset: 0,
     yOffset: 0,
@@ -275,6 +310,7 @@ export const createInitialScene = () => ({
     zoomSpeed: 0.18,
     rotate: 3,
     rotateSpeed: 0.08,
+    orbit: 0.03,
   },
   overlay: {
     showLogo: true,
