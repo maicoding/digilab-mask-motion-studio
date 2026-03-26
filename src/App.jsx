@@ -457,9 +457,14 @@ const App = () => {
             <SliderField label="Stage Breite" value={scene.stage.width} min={0.3} max={0.92} step={0.01} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('stage.width', value)} />
             <SliderField label="Stage Höhe" value={scene.stage.height} min={0.2} max={0.86} step={0.01} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('stage.height', value)} />
           </div>
+          <ToggleField label="Backdrop Box" checked={scene.stage.showBackdrop ?? false} onChange={(value) => updateScene('stage.showBackdrop', value)} />
           <div className="field-grid">
             <SliderField label="Shadow" value={scene.stage.shadow} min={0} max={0.5} step={0.01} onChange={(value) => updateScene('stage.shadow', value)} />
             <SliderField label="Radius" value={scene.stage.radius} min={0} max={0.2} step={0.01} onChange={(value) => updateScene('stage.radius', value)} />
+          </div>
+          <div className="field-grid">
+            <SliderField label="Backdrop Alpha" value={scene.stage.backdropOpacity ?? 1} min={0} max={1} step={0.01} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('stage.backdropOpacity', value)} />
+            <div />
           </div>
         </Section>
 
@@ -476,9 +481,12 @@ const App = () => {
           </div>
           <div className="field-grid">
             <SliderField label="Rotate" value={scene.imageMotion.rotate} min={0} max={15} step={0.5} format={(value) => `${value.toFixed(1)}°`} onChange={(value) => updateScene('imageMotion.rotate', value)} />
-            <SliderField label="Rotate Speed" value={scene.imageMotion.rotateSpeed} min={0.01} max={0.4} step={0.01} format={(value) => `${value.toFixed(2)}`} onChange={(value) => updateScene('imageMotion.rotateSpeed', value)} />
+            <SliderField label="Rotate Loops" value={scene.imageMotion.rotateSpeed} min={1} max={8} step={1} format={(value) => `${Math.round(value)}x`} onChange={(value) => updateScene('imageMotion.rotateSpeed', value)} />
           </div>
-          <SliderField label="Orbit" value={scene.imageMotion.orbit ?? 0} min={0} max={0.12} step={0.005} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('imageMotion.orbit', value)} />
+          <div className="field-grid">
+            <SliderField label="Orbit" value={scene.imageMotion.orbit ?? 0} min={0} max={0.12} step={0.005} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('imageMotion.orbit', value)} />
+            <SliderField label="Orbit Loops" value={scene.imageMotion.orbitCycles ?? 1} min={1} max={8} step={1} format={(value) => `${Math.round(value)}x`} onChange={(value) => updateScene('imageMotion.orbitCycles', value)} />
+          </div>
         </Section>
 
         <Section title="Mask & Turbulence" icon={SquareDashedMousePointer}>
@@ -504,7 +512,7 @@ const App = () => {
             <SliderField label="Complexity" value={scene.mask.complexity} min={0} max={0.8} step={0.01} onChange={(value) => updateScene('mask.complexity', value)} />
           </div>
           <div className="field-grid">
-            <SliderField label="Evolution" value={scene.mask.evolutionSpeed} min={0.01} max={0.8} step={0.01} onChange={(value) => updateScene('mask.evolutionSpeed', value)} />
+            <SliderField label="Evolution Loops" value={scene.mask.evolutionSpeed} min={1} max={8} step={1} format={(value) => `${Math.round(value)}x`} onChange={(value) => updateScene('mask.evolutionSpeed', value)} />
             <SliderField label="Wobble" value={scene.mask.wobble} min={0} max={0.3} step={0.01} onChange={(value) => updateScene('mask.wobble', value)} />
           </div>
           <div className="field-grid">

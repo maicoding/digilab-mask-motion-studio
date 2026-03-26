@@ -3,6 +3,7 @@ const tintCache = new Map();
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const fract = (value) => value - Math.floor(value);
+const TAU = Math.PI * 2;
 
 const getScratchCanvas = (key, width, height) => {
   let canvas = scratch.get(key);
@@ -77,14 +78,21 @@ const getProcessedAsset = (image, settings) => {
   return canvas;
 };
 
-const makeMaskPolygon = (mask, time) => {
+const getLoopPhase = (scene, time) => {
+  const duration = Math.max(0.0001, scene.playback?.duration ?? 1);
+  return fract(((time % duration) + duration) / duration);
+};
+
+const makeMaskPolygon = (mask, phase) => {
   const points = [];
   const total = Math.max(8, mask.points);
-  const breath = 1 + Math.sin(time * Math.max(0.04, mask.evolutionSpeed) * 4 + mask.seed * 0.001) * (mask.breath ?? 0);
+  const primaryCycles = Math.max(1, Math.round(mask.evolutionSpeed ?? 1));
+  const secondaryCycles = Math.max(1, primaryCycles + Math.round((mask.complexity ?? 0) * 6));
+  const breath = 1 + Math.sin(TAU * phase * primaryCycles + mask.seed * 0.001) * (mask.breath ?? 0);
   for (let index = 0; index < total; index += 1) {
     const angle = (index / total) * Math.PI * 2;
-    const waveA = Math.sin(angle * 2 + time * mask.evolutionSpeed * 6 + mask.seed * 0.0021) * mask.asymmetry;
-    const waveB = Math.sin(angle * (2 + mask.complexity * 10) - time * mask.evolutionSpeed * 4 + index * 0.27) * mask.wobble;
+    const waveA = Math.sin(angle * 2 + TAU * phase * primaryCycles + mask.seed * 0.0021) * mask.asymmetry;
+    const waveB = Math.sin(angle * (2 + mask.complexity * 10) - TAU * phase * secondaryCycles + index * 0.27) * mask.wobble;
     const waveC = (hash(mask.seed + index * 8.3) - 0.5) * mask.turbulence * 0.8;
     const radius = mask.shapeScale * breath * clamp(0.78 + waveA + waveB + waveC, 0.36, 1.18);
     points.push({
@@ -95,11 +103,11 @@ const makeMaskPolygon = (mask, time) => {
   return points;
 };
 
-const drawPixelMask = (maskCanvas, mask, time, fill) => {
+const drawPixelMask = (maskCanvas, mask, phase, fill) => {
   const ctx = maskCanvas.getContext('2d');
   const resolution = maskCanvas.width;
   const center = resolution / 2;
-  const polygon = makeMaskPolygon(mask, time);
+  const polygon = makeMaskPolygon(mask, phase);
   ctx.save();
   ctx.translate(center + mask.xOffset * resolution * 0.08, center + mask.yOffset * resolution * 0.08);
   ctx.scale(center, center);
@@ -122,26 +130,29 @@ const drawStage = (ctx, width, height, stage) => {
   const stageHeight = height * stage.height;
   const x = width * stage.x - stageWidth / 2;
   const y = height * stage.y - stageHeight / 2;
-  ctx.save();
-  ctx.shadowColor = 'rgba(0,0,0,0.45)';
-  ctx.shadowBlur = stage.shadow * 140;
-  ctx.fillStyle = stage.fill;
-  if (stage.radius > 0) {
-    const radius = Math.min(stage.radius * Math.min(stageWidth, stageHeight), Math.min(stageWidth, stageHeight) / 2);
-    ctx.beginPath();
-    ctx.roundRect(x, y, stageWidth, stageHeight, radius);
-    ctx.fill();
-  } else {
-    ctx.fillRect(x, y, stageWidth, stageHeight);
+  if (stage.showBackdrop) {
+    ctx.save();
+    ctx.globalAlpha = stage.backdropOpacity ?? 1;
+    ctx.shadowColor = 'rgba(0,0,0,0.45)';
+    ctx.shadowBlur = stage.shadow * 140;
+    ctx.fillStyle = stage.fill;
+    if (stage.radius > 0) {
+      const radius = Math.min(stage.radius * Math.min(stageWidth, stageHeight), Math.min(stageWidth, stageHeight) / 2);
+      ctx.beginPath();
+      ctx.roundRect(x, y, stageWidth, stageHeight, radius);
+      ctx.fill();
+    } else {
+      ctx.fillRect(x, y, stageWidth, stageHeight);
+    }
+    ctx.restore();
   }
-  ctx.restore();
   return { x, y, width: stageWidth, height: stageHeight };
 };
 
-const drawMaskedImage = (ctx, bounds, scene, time, image, colors) => {
+const drawMaskedImage = (ctx, bounds, scene, phase, image, colors) => {
   const maskSize = Math.round(Math.max(36, scene.mask.pixelSize));
   const maskCanvas = getScratchCanvas(`mask:${scene.mask.presetId}:${maskSize}`, maskSize, maskSize);
-  drawPixelMask(maskCanvas, scene.mask, time, '#ffffff');
+  drawPixelMask(maskCanvas, scene.mask, phase, '#ffffff');
 
   const contentCanvas = getScratchCanvas(`content:${bounds.width}:${bounds.height}`, Math.ceil(bounds.width), Math.ceil(bounds.height));
   const contentCtx = contentCanvas.getContext('2d');
@@ -150,10 +161,13 @@ const drawMaskedImage = (ctx, bounds, scene, time, image, colors) => {
   contentCtx.fillRect(0, 0, contentCanvas.width, contentCanvas.height);
 
   if (image) {
-    const driftX = Math.sin(time * 1.3) * scene.imageMotion.driftX + Math.sin(time * 0.73 + 0.4) * (scene.imageMotion.orbit ?? 0);
-    const driftY = Math.cos(time * 1.17) * scene.imageMotion.driftY + Math.cos(time * 0.91 + 0.9) * (scene.imageMotion.orbit ?? 0);
-    const zoom = 1 + Math.sin(time * scene.imageMotion.zoomSpeed * 6) * scene.imageMotion.zoom;
-    const rotation = Math.sin(time * scene.imageMotion.rotateSpeed * 6) * scene.imageMotion.rotate;
+    const zoomCycles = Math.max(1, Math.round(scene.imageMotion.zoomSpeed ?? 1));
+    const rotateCycles = Math.max(1, Math.round(scene.imageMotion.rotateSpeed ?? 1));
+    const orbitCycles = Math.max(1, Math.round(scene.imageMotion.orbitCycles ?? 1));
+    const driftX = Math.sin(TAU * phase) * scene.imageMotion.driftX + Math.sin(TAU * phase * orbitCycles + 0.4) * (scene.imageMotion.orbit ?? 0);
+    const driftY = Math.cos(TAU * phase) * scene.imageMotion.driftY + Math.cos(TAU * phase * orbitCycles + 0.9) * (scene.imageMotion.orbit ?? 0);
+    const zoom = 1 + Math.sin(TAU * phase * zoomCycles) * scene.imageMotion.zoom;
+    const rotation = Math.sin(TAU * phase * rotateCycles) * scene.imageMotion.rotate;
     const fitScale = Math.max(contentCanvas.width / image.width, contentCanvas.height / image.height) * scene.imageMotion.scale * zoom;
     const drawWidth = image.width * fitScale;
     const drawHeight = image.height * fitScale;
@@ -199,6 +213,7 @@ export const renderScene = ({ ctx, width, height, scene, colors, time, getImage 
   ctx.clearRect(0, 0, width, height);
   ctx.fillStyle = scene.useCustomBackground ? scene.backgroundColor : colors.background;
   ctx.fillRect(0, 0, width, height);
+  const phase = getLoopPhase(scene, time);
 
   const bounds = drawStage(ctx, width, height, {
     ...scene.stage,
@@ -206,7 +221,7 @@ export const renderScene = ({ ctx, width, height, scene, colors, time, getImage 
   });
 
   const image = getImage(scene.imageSrc);
-  drawMaskedImage(ctx, bounds, scene, time, image, colors);
+  drawMaskedImage(ctx, bounds, scene, phase, image, colors);
 
   const logoImage = getImage(scene.overlay.logoSrc);
   drawLogo(ctx, width, height, scene.overlay, logoImage);
