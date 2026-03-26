@@ -283,6 +283,17 @@ export const MASK_PRESETS = [
   },
 ];
 
+export const FORM_MOTION_PRESETS = [
+  { id: 'form01-clean', label: 'Form 01 Clean', maskPresetId: 'post-form-01', motionPresetId: 'clean-loop' },
+  { id: 'form02-liquid', label: 'Form 02 Liquid', maskPresetId: 'post-form-02', motionPresetId: 'liquid-roll' },
+  { id: 'form03-editorial', label: 'Form 03 Editorial', maskPresetId: 'post-form-03', motionPresetId: 'micro-wobble' },
+  { id: 'form04-wild', label: 'Form 04 Wild', maskPresetId: 'post-form-04', motionPresetId: 'wild-loop' },
+  { id: 'story01-clean', label: 'Story 01 Clean', maskPresetId: 'story-form-01', motionPresetId: 'clean-loop' },
+  { id: 'story02-liquid', label: 'Story 02 Liquid', maskPresetId: 'story-form-02', motionPresetId: 'liquid-roll' },
+  { id: 'story03-editorial', label: 'Story 03 Editorial', maskPresetId: 'story-form-03', motionPresetId: 'slow-loop' },
+  { id: 'story04-wild', label: 'Story 04 Wild', maskPresetId: 'story-form-04', motionPresetId: 'wild-loop' },
+];
+
 export const createInitialScene = () => ({
   presetId: 'story',
   colorPresetId: 'pink-lila',

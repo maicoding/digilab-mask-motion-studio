@@ -13,6 +13,7 @@ import {
 import {
   CANVAS_PRESETS,
   COLOR_PRESETS,
+  FORM_MOTION_PRESETS,
   LOGO_PRESETS,
   MASK_PRESETS,
   MOTION_PRESETS,
@@ -223,6 +224,39 @@ const App = () => {
     }));
   };
 
+  const applyFormMotionPreset = (presetId) => {
+    const combo = FORM_MOTION_PRESETS.find((item) => item.id === presetId);
+    if (!combo) {
+      return;
+    }
+    const maskPreset = MASK_PRESETS.find((item) => item.id === combo.maskPresetId);
+    const motionPreset = MOTION_PRESETS.find((item) => item.id === combo.motionPresetId);
+    if (!maskPreset || !motionPreset) {
+      return;
+    }
+    setScene((current) => ({
+      ...current,
+      presetId: maskPreset.format ?? current.presetId,
+      motionPresetId: motionPreset.id,
+      mask: {
+        ...current.mask,
+        ...maskPreset,
+        ...motionPreset.mask,
+        presetId: maskPreset.id,
+      },
+      imageMotion: {
+        ...current.imageMotion,
+        ...motionPreset.imageMotion,
+      },
+      stage: {
+        ...current.stage,
+        width: maskPreset.width,
+        height: maskPreset.height,
+        y: maskPreset.stageY ?? current.stage.y,
+      },
+    }));
+  };
+
   const handleImageUpload = (event) => {
     const file = event.target.files?.[0];
     if (!file) {
@@ -418,6 +452,23 @@ const App = () => {
         </Section>
 
         <Section title="Motion Modes" icon={Film}>
+          <SelectField
+            label="Scene Preset"
+            value=""
+            options={[{ value: '', label: 'Form + Motion wählen' }, ...FORM_MOTION_PRESETS.map((item) => ({ value: item.id, label: item.label }))]}
+            onChange={(value) => {
+              if (value) {
+                applyFormMotionPreset(value);
+              }
+            }}
+          />
+          <div className="button-row">
+            {FORM_MOTION_PRESETS.map((item) => (
+              <button key={item.id} type="button" className="ghost-button small-chip" onClick={() => applyFormMotionPreset(item.id)}>
+                {item.label}
+              </button>
+            ))}
+          </div>
           <SelectField
             label="Motion Preset"
             value={scene.motionPresetId}
