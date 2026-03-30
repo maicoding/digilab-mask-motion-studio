@@ -34,6 +34,12 @@ const MP4_MEDIA_RECORDER_CANDIDATES = [
   'video/mp4',
 ];
 
+const EXPORT_PRESETS = [
+  { id: 'instagram-post', label: 'Post', presetId: 'square', duration: 5, fps: 30, rate: 1, loop: true },
+  { id: 'instagram-story', label: 'Story', presetId: 'story', duration: 6, fps: 30, rate: 1, loop: true },
+  { id: 'instagram-reel', label: 'Reel', presetId: 'story', duration: 8, fps: 30, rate: 1, loop: true },
+];
+
 const deepSet = (source, path, value) => {
   const keys = path.split('.');
   const clone = Array.isArray(source) ? [...source] : { ...source };
@@ -515,6 +521,25 @@ const App = () => {
     }));
   };
 
+  const applyExportPreset = (presetId) => {
+    const presetEntry = EXPORT_PRESETS.find((item) => item.id === presetId);
+    if (!presetEntry) {
+      return;
+    }
+    setScene((current) => ({
+      ...current,
+      presetId: presetEntry.presetId,
+      playback: {
+        ...current.playback,
+        duration: presetEntry.duration,
+        fps: presetEntry.fps,
+        rate: presetEntry.rate,
+        loop: presetEntry.loop,
+        time: 0,
+      },
+    }));
+  };
+
   const exportPng = () => {
     const exportCanvas = document.createElement('canvas');
     exportCanvas.width = preset.width;
@@ -782,6 +807,23 @@ const App = () => {
         </div>
 
         <Section title="Format & Playback" icon={Play}>
+          <SelectField
+            label="Instagram Export Preset"
+            value=""
+            options={[{ value: '', label: 'Preset wählen' }, ...EXPORT_PRESETS.map((item) => ({ value: item.id, label: item.label }))]}
+            onChange={(value) => {
+              if (value) {
+                applyExportPreset(value);
+              }
+            }}
+          />
+          <div className="button-row">
+            {EXPORT_PRESETS.map((item) => (
+              <button key={item.id} type="button" className="ghost-button small-chip" onClick={() => applyExportPreset(item.id)}>
+                {item.label}
+              </button>
+            ))}
+          </div>
           <SelectField
             label="Instagram Format"
             value={scene.presetId}
