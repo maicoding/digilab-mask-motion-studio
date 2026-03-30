@@ -27,6 +27,13 @@ const MP4_ENCODER_CANDIDATES = [
   { codec: 'avc1.4d001f', avc: { format: 'avc' } },
 ];
 
+const MP4_MEDIA_RECORDER_CANDIDATES = [
+  'video/mp4;codecs="avc1.42E01E,mp4a.40.2"',
+  'video/mp4;codecs="avc1.42E01E"',
+  'video/mp4;codecs="avc1"',
+  'video/mp4',
+];
+
 const deepSet = (source, path, value) => {
   const keys = path.split('.');
   const clone = Array.isArray(source) ? [...source] : { ...source };
@@ -520,6 +527,15 @@ const App = () => {
     link.click();
   };
 
+  const renderFramesToCanvas = async (targetCtx) => {
+    const totalFrames = Math.max(1, Math.round(scene.playback.duration * scene.playback.fps));
+    for (let frame = 0; frame < totalFrames; frame += 1) {
+      const time = (frame / totalFrames) * scene.playback.duration;
+      renderScene({ ctx: targetCtx, width: preset.width, height: preset.height, scene, colors: colorPreset, time, getImage });
+      await new Promise((resolve) => window.requestAnimationFrame(resolve));
+    }
+  };
+
   const exportWebm = async () => {
     const sourceCanvas = canvasRef.current;
     if (!sourceCanvas || isRecording) {
@@ -549,13 +565,7 @@ const App = () => {
       setIsRecording(false);
     };
     mediaRecorder.start();
-
-    const totalFrames = Math.max(1, Math.round(scene.playback.duration * scene.playback.fps));
-    for (let frame = 0; frame < totalFrames; frame += 1) {
-      const time = (frame / totalFrames) * scene.playback.duration;
-      renderScene({ ctx: recorderCtx, width: preset.width, height: preset.height, scene, colors: colorPreset, time, getImage });
-      await new Promise((resolve) => window.requestAnimationFrame(resolve));
-    }
+    await renderFramesToCanvas(recorderCtx);
     mediaRecorder.stop();
   };
 
@@ -576,7 +586,37 @@ const App = () => {
       recorderCanvas.height = preset.height;
       const recorderCtx = recorderCanvas.getContext('2d');
       const fps = Math.max(1, scene.playback.fps);
-      const totalFrames = Math.max(1, Math.round(scene.playback.duration * fps));
+
+      if (typeof window.MediaRecorder !== 'undefined') {
+        const supportedMimeType = MP4_MEDIA_RECORDER_CANDIDATES.find((candidate) => window.MediaRecorder.isTypeSupported(candidate));
+        if (supportedMimeType) {
+          const stream = recorderCanvas.captureStream(fps);
+          const chunks = [];
+          const mediaRecorder = new window.MediaRecorder(stream, { mimeType: supportedMimeType });
+
+          const blob = await new Promise(async (resolve, reject) => {
+            mediaRecorder.ondataavailable = (event) => {
+              if (event.data.size > 0) {
+                chunks.push(event.data);
+              }
+            };
+            mediaRecorder.onerror = (event) => reject(event.error ?? new Error('MP4-Aufnahme fehlgeschlagen.'));
+            mediaRecorder.onstop = () => resolve(new Blob(chunks, { type: 'video/mp4' }));
+
+            mediaRecorder.start();
+            await renderFramesToCanvas(recorderCtx);
+            mediaRecorder.stop();
+          });
+
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.download = `digilab-mask-motion-${preset.id}-${Date.now()}.mp4`;
+          link.href = url;
+          link.click();
+          URL.revokeObjectURL(url);
+          return;
+        }
+      }
 
       let selectedConfig = null;
       for (const candidate of MP4_ENCODER_CANDIDATES) {
@@ -632,6 +672,7 @@ const App = () => {
 
       encoder.configure(selectedConfig);
 
+      const totalFrames = Math.max(1, Math.round(scene.playback.duration * fps));
       for (let frame = 0; frame < totalFrames; frame += 1) {
         const time = (frame / totalFrames) * scene.playback.duration;
         renderScene({ ctx: recorderCtx, width: preset.width, height: preset.height, scene, colors: colorPreset, time, getImage });
