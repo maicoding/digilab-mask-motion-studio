@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { ArrayBufferTarget, Muxer } from 'mp4-muxer';
 import {
   Download,
   Film,
@@ -20,6 +21,11 @@ import {
   createInitialScene,
 } from './presets.js';
 import { renderScene } from './engine.js';
+
+const MP4_ENCODER_CANDIDATES = [
+  { codec: 'avc1.42001f', avc: { format: 'avc' } },
+  { codec: 'avc1.4d001f', avc: { format: 'avc' } },
+];
 
 const deepSet = (source, path, value) => {
   const keys = path.split('.');
@@ -553,6 +559,119 @@ const App = () => {
     mediaRecorder.stop();
   };
 
+  const exportMp4 = async () => {
+    if (isRecording) {
+      return;
+    }
+
+    if (typeof window.VideoEncoder === 'undefined' || typeof window.VideoFrame === 'undefined') {
+      window.alert('MP4-Export wird in diesem Browser nicht unterstützt. Bitte nutze hier WEBM oder einen aktuellen Chrome/Edge.');
+      return;
+    }
+
+    setIsRecording(true);
+    try {
+      const recorderCanvas = document.createElement('canvas');
+      recorderCanvas.width = preset.width;
+      recorderCanvas.height = preset.height;
+      const recorderCtx = recorderCanvas.getContext('2d');
+      const fps = Math.max(1, scene.playback.fps);
+      const totalFrames = Math.max(1, Math.round(scene.playback.duration * fps));
+
+      let selectedConfig = null;
+      for (const candidate of MP4_ENCODER_CANDIDATES) {
+        const support = await window.VideoEncoder.isConfigSupported({
+          codec: candidate.codec,
+          width: preset.width,
+          height: preset.height,
+          bitrate: Math.round(preset.width * preset.height * fps * 0.18),
+          framerate: fps,
+          ...candidate,
+        });
+        if (support.supported) {
+          selectedConfig = {
+            codec: candidate.codec,
+            width: preset.width,
+            height: preset.height,
+            bitrate: Math.round(preset.width * preset.height * fps * 0.18),
+            framerate: fps,
+            ...candidate,
+          };
+          break;
+        }
+      }
+
+      if (!selectedConfig) {
+        window.alert('MP4-Export ist auf diesem Geraet leider nicht verfuegbar. Bitte nutze hier WEBM.');
+        setIsRecording(false);
+        return;
+      }
+
+      const target = new ArrayBufferTarget();
+      const muxer = new Muxer({
+        target,
+        fastStart: 'in-memory',
+        firstTimestampBehavior: 'offset',
+        video: {
+          codec: 'avc',
+          width: preset.width,
+          height: preset.height,
+          frameRate: fps,
+        },
+      });
+
+      let encoderError = null;
+      const encoder = new window.VideoEncoder({
+        output: (chunk, meta) => {
+          muxer.addVideoChunk(chunk, meta);
+        },
+        error: (error) => {
+          encoderError = error;
+        },
+      });
+
+      encoder.configure(selectedConfig);
+
+      for (let frame = 0; frame < totalFrames; frame += 1) {
+        const time = (frame / totalFrames) * scene.playback.duration;
+        renderScene({ ctx: recorderCtx, width: preset.width, height: preset.height, scene, colors: colorPreset, time, getImage });
+
+        const frameDuration = Math.round(1_000_000 / fps);
+        const videoFrame = new window.VideoFrame(recorderCanvas, {
+          timestamp: frame * frameDuration,
+          duration: frameDuration,
+        });
+        encoder.encode(videoFrame, { keyFrame: frame === 0 || frame % fps === 0 });
+        videoFrame.close();
+
+        if (encoder.encodeQueueSize > 8) {
+          await encoder.flush();
+        }
+        if (encoderError) {
+          throw encoderError;
+        }
+        await new Promise((resolve) => window.requestAnimationFrame(resolve));
+      }
+
+      await encoder.flush();
+      encoder.close();
+      muxer.finalize();
+
+      const blob = new Blob([target.buffer], { type: 'video/mp4' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.download = `digilab-mask-motion-${preset.id}-${Date.now()}.mp4`;
+      link.href = url;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error(error);
+      window.alert('MP4-Export konnte nicht erstellt werden. Bitte pruefe den Browser oder nutze alternativ WEBM.');
+    } finally {
+      setIsRecording(false);
+    }
+  };
+
   useEffect(() => {
     document.fonts?.ready.then(() => setAssetVersion((value) => value + 1));
   }, []);
@@ -941,6 +1060,10 @@ const App = () => {
             <button className="accent-button" type="button" onClick={exportPng}>
               <Download size={16} />
               PNG
+            </button>
+            <button className="ghost-button" type="button" onClick={exportMp4} disabled={isRecording}>
+              <Film size={16} />
+              {isRecording ? 'RENDERING...' : 'MP4'}
             </button>
             <button className="ghost-button" type="button" onClick={exportWebm} disabled={isRecording}>
               <Film size={16} />
