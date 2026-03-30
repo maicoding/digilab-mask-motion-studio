@@ -367,7 +367,7 @@ export const createInitialScene = () => ({
     start: 'Start:',
     duration: 'Dauer:',
     location: 'Ort/Raum/Online',
-    email: 'digilab.ai@fh-dortmund.de',
+    email: 'ai.digilab@fh-dortmund.de',
     titleColor: '#FFFFFF',
     metaColor: '#FFFFFF',
     emailColor: '#FFFFFF',
