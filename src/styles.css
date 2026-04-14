@@ -98,6 +98,7 @@ textarea {
   display: flex;
   flex-direction: column;
   gap: 18px;
+  align-items: stretch;
 }
 
 .sidebar__header,
@@ -387,8 +388,12 @@ textarea {
 }
 
 .stage-shell {
-  flex: 1;
-  min-height: 480px;
+  position: sticky;
+  top: 18px;
+  z-index: 5;
+  flex: 0 0 auto;
+  min-height: min(680px, calc(100vh - 36px));
+  max-height: calc(100vh - 36px);
   padding: 28px;
   border-radius: 28px;
   border: 1px solid var(--line);
@@ -483,6 +488,13 @@ textarea {
 }
 
 @media (max-width: 760px) {
+  .stage-shell {
+    position: static;
+    top: auto;
+    max-height: none;
+    min-height: 480px;
+  }
+
   .workspace__header,
   .field-grid,
   .library-grid,
