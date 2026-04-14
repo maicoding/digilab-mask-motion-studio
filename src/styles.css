@@ -33,7 +33,7 @@ body {
     linear-gradient(180deg, #09090c 0%, #111117 100%);
   color: var(--text);
   font-family: 'Archivo', sans-serif;
-  overflow: auto;
+  overflow: hidden;
 }
 
 button,
@@ -73,18 +73,21 @@ textarea {
 .app-shell {
   display: grid;
   grid-template-columns: 380px minmax(0, 1fr);
+  height: 100vh;
   min-height: 100vh;
+  overflow: hidden;
 }
 
 .sidebar,
 .workspace {
-  min-height: 100vh;
-  overflow: auto;
+  height: 100vh;
+  min-height: 0;
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 245, 0, 0.38) rgba(255, 255, 255, 0.06);
 }
 
 .sidebar {
+  overflow: auto;
   padding: 18px;
   display: flex;
   flex-direction: column;
@@ -94,9 +97,10 @@ textarea {
 }
 
 .workspace {
+  overflow: hidden;
   padding: 18px;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   gap: 18px;
   align-items: stretch;
 }
@@ -388,12 +392,9 @@ textarea {
 }
 
 .stage-shell {
-  position: sticky;
-  top: 18px;
-  z-index: 5;
-  flex: 0 0 auto;
-  min-height: min(680px, calc(100vh - 36px));
-  max-height: calc(100vh - 36px);
+  position: relative;
+  min-height: 0;
+  height: 100%;
   padding: 28px;
   border-radius: 28px;
   border: 1px solid var(--line);
@@ -453,6 +454,8 @@ textarea {
 }
 
 .reference-card {
+  max-height: 26vh;
+  overflow: auto;
   padding: 18px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 330px;
@@ -473,17 +476,35 @@ textarea {
 }
 
 @media (max-width: 1180px) {
+  body {
+    overflow: auto;
+  }
+
   .app-shell {
     grid-template-columns: 1fr;
+    height: auto;
+    overflow: visible;
   }
 
   .sidebar,
   .workspace {
+    height: auto;
     min-height: auto;
   }
 
   .sidebar {
     max-height: 68vh;
+  }
+
+  .workspace {
+    overflow: visible;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .reference-card {
+    max-height: none;
+    overflow: visible;
   }
 }
 
@@ -491,8 +512,8 @@ textarea {
   .stage-shell {
     position: static;
     top: auto;
-    max-height: none;
     min-height: 480px;
+    height: auto;
   }
 
   .workspace__header,
