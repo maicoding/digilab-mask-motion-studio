@@ -281,6 +281,31 @@ const getInfoLayoutPresets = (presetId) => {
   ];
 };
 
+const getMaskVariantFormat = (canvasPresetId) => {
+  if (canvasPresetId === 'portrait') {
+    return 'story';
+  }
+  if (canvasPresetId === 'square' || canvasPresetId === 'story' || canvasPresetId === 'landscape') {
+    return canvasPresetId;
+  }
+  return null;
+};
+
+const resolveMaskPresetForCanvas = (maskPresetId, canvasPresetId) => {
+  const selected = MASK_PRESETS.find((item) => item.id === maskPresetId);
+  if (!selected) {
+    return null;
+  }
+
+  const targetFormat = getMaskVariantFormat(canvasPresetId);
+  if (!targetFormat) {
+    return selected;
+  }
+
+  const sameFamilyVariant = MASK_PRESETS.find((item) => item.family === selected.family && item.format === targetFormat);
+  return sameFamilyVariant ?? selected;
+};
+
 const App = () => {
   const initialScene = useMemo(() => createInitialScene(), []);
   const [scene, setScene] = useState(initialScene);
@@ -353,25 +378,26 @@ const App = () => {
   };
 
   const applyMaskPreset = (presetId) => {
-    const presetEntry = MASK_PRESETS.find((item) => item.id === presetId);
-    if (!presetEntry) {
-      return;
-    }
-    setScene((current) => ({
-      ...current,
-      mask: {
-        ...current.mask,
-        ...presetEntry,
-        presetId,
-      },
-      stage: {
-        ...current.stage,
-        width: presetEntry.width,
-        height: presetEntry.height,
-        y: presetEntry.stageY ?? current.stage.y,
-      },
-      presetId: presetEntry.format ?? current.presetId,
-    }));
+    setScene((current) => {
+      const presetEntry = resolveMaskPresetForCanvas(presetId, current.presetId);
+      if (!presetEntry) {
+        return current;
+      }
+      return {
+        ...current,
+        mask: {
+          ...current.mask,
+          ...presetEntry,
+          presetId: presetEntry.id,
+        },
+        stage: {
+          ...current.stage,
+          width: presetEntry.width,
+          height: presetEntry.height,
+          y: presetEntry.stageY ?? current.stage.y,
+        },
+      };
+    });
   };
 
   const applyMotionPreset = (presetId) => {
@@ -398,32 +424,36 @@ const App = () => {
     if (!combo) {
       return;
     }
-    const maskPreset = MASK_PRESETS.find((item) => item.id === combo.maskPresetId);
     const motionPreset = MOTION_PRESETS.find((item) => item.id === combo.motionPresetId);
-    if (!maskPreset || !motionPreset) {
+    if (!motionPreset) {
       return;
     }
-    setScene((current) => ({
-      ...current,
-      presetId: maskPreset.format ?? current.presetId,
-      motionPresetId: motionPreset.id,
-      mask: {
-        ...current.mask,
-        ...maskPreset,
-        ...motionPreset.mask,
-        presetId: maskPreset.id,
-      },
-      imageMotion: {
-        ...current.imageMotion,
-        ...motionPreset.imageMotion,
-      },
-      stage: {
-        ...current.stage,
-        width: maskPreset.width,
-        height: maskPreset.height,
-        y: maskPreset.stageY ?? current.stage.y,
-      },
-    }));
+    setScene((current) => {
+      const maskPreset = resolveMaskPresetForCanvas(combo.maskPresetId, current.presetId);
+      if (!maskPreset) {
+        return current;
+      }
+      return {
+        ...current,
+        motionPresetId: motionPreset.id,
+        mask: {
+          ...current.mask,
+          ...maskPreset,
+          ...motionPreset.mask,
+          presetId: maskPreset.id,
+        },
+        imageMotion: {
+          ...current.imageMotion,
+          ...motionPreset.imageMotion,
+        },
+        stage: {
+          ...current.stage,
+          width: maskPreset.width,
+          height: maskPreset.height,
+          y: maskPreset.stageY ?? current.stage.y,
+        },
+      };
+    });
   };
 
   const handleImageUpload = (event) => {
