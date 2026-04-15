@@ -101,6 +101,10 @@ textarea {
   flex-direction: column;
   gap: 18px;
   align-items: stretch;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  min-height: 100vh;
 }
 
 .sidebar__header,
@@ -388,10 +392,10 @@ textarea {
 }
 
 .stage-shell {
-  position: sticky;
-  top: 18px;
-  min-height: calc(100vh - 36px);
-  max-height: calc(100vh - 36px);
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
   padding: 28px;
   border-radius: 28px;
   border: 1px solid var(--line);
@@ -466,6 +470,9 @@ textarea {
   }
 
   .workspace {
+    position: static;
+    top: auto;
+    height: auto;
     display: flex;
   }
 }
