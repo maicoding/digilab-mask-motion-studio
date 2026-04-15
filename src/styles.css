@@ -33,7 +33,7 @@ body {
     linear-gradient(180deg, #09090c 0%, #111117 100%);
   color: var(--text);
   font-family: 'Archivo', sans-serif;
-  overflow: hidden;
+  overflow: auto;
 }
 
 button,
@@ -73,21 +73,19 @@ textarea {
 .app-shell {
   display: grid;
   grid-template-columns: 380px minmax(0, 1fr);
-  height: 100vh;
   min-height: 100vh;
-  overflow: hidden;
+  align-items: start;
 }
 
 .sidebar,
 .workspace {
-  height: 100vh;
-  min-height: 0;
+  min-height: 100vh;
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 245, 0, 0.38) rgba(255, 255, 255, 0.06);
 }
 
 .sidebar {
-  overflow: auto;
+  overflow: visible;
   padding: 18px;
   display: flex;
   flex-direction: column;
@@ -97,10 +95,10 @@ textarea {
 }
 
 .workspace {
-  overflow: hidden;
+  overflow: visible;
   padding: 18px;
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  display: flex;
+  flex-direction: column;
   gap: 18px;
   align-items: stretch;
 }
@@ -108,14 +106,12 @@ textarea {
 .sidebar__header,
 .workspace__header,
 .panel,
-.stage,
-.reference-card {
+.stage {
   box-shadow: var(--shadow);
 }
 
 .sidebar__header,
-.workspace__header,
-.reference-card {
+.workspace__header {
   border: 1px solid var(--line);
   border-radius: 24px;
   background: var(--bg-panel);
@@ -392,9 +388,10 @@ textarea {
 }
 
 .stage-shell {
-  position: relative;
-  min-height: 0;
-  height: 100%;
+  position: sticky;
+  top: 18px;
+  min-height: calc(100vh - 36px);
+  max-height: calc(100vh - 36px);
   padding: 28px;
   border-radius: 28px;
   border: 1px solid var(--line);
@@ -453,58 +450,23 @@ textarea {
   color: #111;
 }
 
-.reference-card {
-  max-height: 26vh;
-  overflow: auto;
-  padding: 18px;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 330px;
-  gap: 18px;
-}
-
-.reference-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.reference-grid img {
-  width: 100%;
-  border-radius: 14px;
-  border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.03);
-}
-
 @media (max-width: 1180px) {
-  body {
-    overflow: auto;
-  }
-
   .app-shell {
     grid-template-columns: 1fr;
-    height: auto;
-    overflow: visible;
   }
 
   .sidebar,
   .workspace {
-    height: auto;
     min-height: auto;
   }
 
   .sidebar {
-    max-height: 68vh;
+    overflow: auto;
+    max-height: none;
   }
 
   .workspace {
-    overflow: visible;
     display: flex;
-    flex-direction: column;
-  }
-
-  .reference-card {
-    max-height: none;
-    overflow: visible;
   }
 }
 
@@ -513,14 +475,12 @@ textarea {
     position: static;
     top: auto;
     min-height: 480px;
-    height: auto;
+    max-height: none;
   }
 
   .workspace__header,
   .field-grid,
-  .library-grid,
-  .reference-card,
-  .reference-grid {
+  .library-grid {
     grid-template-columns: 1fr;
   }
 

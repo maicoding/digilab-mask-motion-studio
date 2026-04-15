@@ -1162,7 +1162,7 @@ const App = () => {
             <div className="eyebrow">Preview</div>
             <h2>Bild hinter pixeliger Form mit turbulenter Wellenbewegung, für Story, Post und weitere Instagram-Formate.</h2>
           </div>
-          <p>Die Form orientiert sich an deinen Referenzen und lässt sich als flexibles Mask-System weiter variieren.</p>
+          <p>Die Vorschau bleibt beim Einstellen sichtbar, damit Komposition, Text und Logo jederzeit im Blick bleiben.</p>
         </div>
 
         <div className="stage-shell" ref={stageRef}>
@@ -1295,24 +1295,6 @@ const App = () => {
                 LOGO
               </button>
             )}
-          </div>
-        </div>
-
-        <div className="reference-card">
-          <div>
-            <div className="eyebrow">Referenzen</div>
-            <h3>Vier Form-Familien fuer Post und Story</h3>
-            <p>Die Engine bildet jetzt alle vier Maskenfamilien aus deinem Instagram-Ordner nach. Die Presets synchronisieren Format und Grundverhalten direkt auf Post oder Story.</p>
-          </div>
-          <div className="reference-grid">
-            <img src="/references/story-form-01.png" alt="Story Form Referenz" />
-            <img src="/references/story-form-02.png" alt="Story Form 02 Referenz" />
-            <img src="/references/story-form-03.png" alt="Story Form 03 Referenz" />
-            <img src="/references/story-form-04.png" alt="Story Form 04 Referenz" />
-            <img src="/references/post-form-01-template03.png" alt="Post Form 01 Referenz" />
-            <img src="/references/post-form-02.png" alt="Post Form 02 Referenz" />
-            <img src="/references/post-form-03.png" alt="Post Form 03 Referenz" />
-            <img src="/references/post-form-04.png" alt="Post Form 04 Referenz" />
           </div>
         </div>
       </main>
