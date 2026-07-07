@@ -162,6 +162,12 @@ const SliderField = ({ label, value, min, max, step = 0.01, onChange, format }) 
   </label>
 );
 
+const ALIGN_OPTIONS = [
+  { value: 'left', label: 'Links' },
+  { value: 'center', label: 'Mitte' },
+  { value: 'right', label: 'Rechts' },
+];
+
 const ToggleField = ({ label, checked, onChange }) => (
   <label className="toggle">
     <span>{label}</span>
@@ -1363,8 +1369,12 @@ const App = () => {
                 <SliderField label="Mail Size" value={scene.infoLayer.emailSize} min={16} max={72} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('infoLayer.emailSize', value)} />
               </div>
               <div className="field-grid">
+                <SliderField label="Titel X" value={scene.infoLayer.titleX ?? getAepInfoLayout(scene.presetId).titleX} min={0.01} max={0.98} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.titleX', value)} />
                 <SliderField label="Titel Y" value={scene.infoLayer.titleY ?? getAepInfoLayout(scene.presetId).titleY} min={0.02} max={0.9} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.titleY', value)} />
+              </div>
+              <div className="field-grid">
                 <SliderField label="Titel 2 Y" value={scene.infoLayer.title2Y ?? getAepInfoLayout(scene.presetId).title2Y} min={0.02} max={0.96} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.title2Y', value)} />
+                <SelectField label="Titel Ausrichtung" value={scene.infoLayer.titleAlign ?? 'center'} options={ALIGN_OPTIONS} onChange={(value) => updateScene('infoLayer.titleAlign', value)} />
               </div>
               <div className="field-grid">
                 <SliderField label="Titel Breite" value={scene.infoLayer.titleMaxWidth ?? 0.82} min={0.3} max={0.96} step={0.01} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.titleMaxWidth', value)} />
@@ -1374,14 +1384,17 @@ const App = () => {
                 <SliderField label="Datum X" value={scene.infoLayer.dateX ?? scene.infoLayer.eventX} min={0.01} max={0.9} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.dateX', value)} />
                 <SliderField label="Datum Y" value={scene.infoLayer.dateY ?? scene.infoLayer.eventY} min={0.01} max={0.9} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.dateY', value)} />
               </div>
+              <SelectField label="Datum Ausrichtung" value={scene.infoLayer.dateAlign ?? 'left'} options={ALIGN_OPTIONS} onChange={(value) => updateScene('infoLayer.dateAlign', value)} />
               <div className="field-grid">
                 <SliderField label="Meta X" value={scene.infoLayer.metaX ?? getAepInfoLayout(scene.presetId).metaX} min={0.01} max={0.98} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.metaX', value)} />
                 <SliderField label="Meta Y" value={scene.infoLayer.metaY ?? getAepInfoLayout(scene.presetId).metaY} min={0.01} max={0.95} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.metaY', value)} />
               </div>
+              <SelectField label="Meta Ausrichtung" value={scene.infoLayer.metaAlign ?? 'right'} options={ALIGN_OPTIONS} onChange={(value) => updateScene('infoLayer.metaAlign', value)} />
               <div className="field-grid">
                 <SliderField label="Mail X" value={scene.infoLayer.emailX} min={0.01} max={0.9} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.emailX', value)} />
                 <SliderField label="Mail Y" value={scene.infoLayer.emailY} min={0.01} max={0.98} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.emailY', value)} />
               </div>
+              <SelectField label="Mail Ausrichtung" value={scene.infoLayer.emailAlign ?? 'left'} options={ALIGN_OPTIONS} onChange={(value) => updateScene('infoLayer.emailAlign', value)} />
             </>
           )}
         </Section>

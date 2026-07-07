@@ -284,7 +284,6 @@ const drawInfoLayer = (ctx, width, height, infoLayer) => {
     ctx.letterSpacing = '0px';
   }
   ctx.textBaseline = 'top';
-  ctx.textAlign = 'left';
 
   const dateSize = Math.max(14, Math.round(infoLayer.dateSize));
   const titleSize = Math.max(18, Math.round(infoLayer.titleSize));
@@ -305,11 +304,12 @@ const drawInfoLayer = (ctx, width, height, infoLayer) => {
   const locationX = width * (infoLayer.locationX ?? 0.94);
   const locationY = height * (infoLayer.locationY ?? 0.94);
 
+  ctx.textAlign = infoLayer.dateAlign ?? 'left';
   ctx.fillStyle = infoLayer.dateColor;
   ctx.font = `${weight} ${dateSize}px "${fontFamily}", "Helvetica Neue", Helvetica, Arial, sans-serif`;
   drawLines(ctx, String(infoLayer.date ?? '').split('\n'), dateX, dateY, dateSize * DWD_LEADING.micro);
 
-  ctx.textAlign = 'right';
+  ctx.textAlign = infoLayer.metaAlign ?? 'right';
   ctx.fillStyle = infoLayer.metaColor;
   ctx.font = `${weight} ${metaSize}px "${fontFamily}", "Helvetica Neue", Helvetica, Arial, sans-serif`;
   const startLines = String(infoLayer.start ?? '').split('\n');
@@ -317,7 +317,7 @@ const drawInfoLayer = (ctx, width, height, infoLayer) => {
   drawLines(ctx, startLines, metaX, metaY, metaSize * DWD_LEADING.meta);
   drawLines(ctx, durationLines, metaX, metaY + startLines.length * metaSize * DWD_LEADING.meta, metaSize * DWD_LEADING.meta);
 
-  ctx.textAlign = 'center';
+  ctx.textAlign = infoLayer.titleAlign ?? 'center';
   ctx.fillStyle = infoLayer.titleColor;
   ctx.font = `${Math.min(800, weight + 100)} ${titleSize}px "${fontFamily}", "Helvetica Neue", Helvetica, Arial, sans-serif`;
   const maxTitleWidth = width * (infoLayer.titleMaxWidth ?? 0.86);
@@ -340,12 +340,12 @@ const drawInfoLayer = (ctx, width, height, infoLayer) => {
     });
   }
 
-  ctx.textAlign = 'left';
+  ctx.textAlign = infoLayer.emailAlign ?? 'left';
   ctx.fillStyle = infoLayer.emailColor;
   ctx.font = `${weight} ${emailSize}px "${fontFamily}", "Helvetica Neue", Helvetica, Arial, sans-serif`;
   drawLines(ctx, String(infoLayer.email ?? '').split('\n'), emailX, emailY, emailSize * DWD_LEADING.micro);
 
-  ctx.textAlign = 'right';
+  ctx.textAlign = infoLayer.locationAlign ?? 'right';
   ctx.fillStyle = infoLayer.metaColor;
   ctx.font = `${weight} ${locationSize}px "${fontFamily}", "Helvetica Neue", Helvetica, Arial, sans-serif`;
   drawLines(ctx, String(infoLayer.location ?? '').split('\n'), locationX, locationY, locationSize * DWD_LEADING.micro);
