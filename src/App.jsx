@@ -1354,7 +1354,6 @@ const App = () => {
           <ToggleField label="Typo Advanced" checked={typoAdvanced} onChange={setTypoAdvanced} />
           {typoAdvanced && (
             <>
-              <div className="asset-note">Advanced verändert die CI-Satzwerte bewusst.</div>
               <div className="field-grid">
                 <SliderField label="Datum Size" value={scene.infoLayer.dateSize} min={18} max={88} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('infoLayer.dateSize', value)} />
                 <SliderField label="Titel Size" value={scene.infoLayer.titleSize} min={42} max={180} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('infoLayer.titleSize', value)} />
@@ -1388,7 +1387,7 @@ const App = () => {
         </Section>
 
         <Section title="Export" icon={Film} defaultOpen={false}>
-          <SliderField label="Preview Zoom" value={previewZoom} min={0.45} max={1} step={0.01} format={(value) => `${Math.round(value * 100)}%`} onChange={setPreviewZoom} />
+          <SliderField label="Zoom" value={previewZoom} min={0.45} max={1} step={0.01} format={(value) => `${Math.round(value * 100)}%`} onChange={setPreviewZoom} />
           <div className="button-row">
             <button className="accent-button" type="button" onClick={exportPng}>
               <Download size={16} />
