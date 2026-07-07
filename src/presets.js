@@ -20,7 +20,7 @@ export const LOGO_PRESETS = [
   {
     id: 'digilab-kombi',
     name: 'DigiLab.ai Kombi',
-    src: '/logos/digilab-ai-kombi-black.png',
+    src: './logos/digilab-ai-kombi-black.png',
     defaults: {
       tint: '#FFFFFF',
       preserveColor: false,
@@ -31,7 +31,7 @@ export const LOGO_PRESETS = [
   {
     id: 'bildmarke',
     name: 'DigiLab.ai Bildmarke',
-    src: '/logos/dwd-bildmarke-blau.png',
+    src: './logos/dwd-bildmarke-blau.png',
     defaults: {
       tint: '#3355FF',
       preserveColor: false,
@@ -390,7 +390,7 @@ export const createInitialScene = () => ({
   },
   overlay: {
     showLogo: false,
-    logoSrc: '/logos/digilab-ai-kombi-black.png',
+    logoSrc: './logos/digilab-ai-kombi-black.png',
     logoName: 'DigiLab.ai Kombi',
     logoTint: '#FFFFFF',
     preserveColor: false,
