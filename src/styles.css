@@ -1,4 +1,15 @@
-@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap');
+@font-face {
+  font-family: 'Degular';
+  src:
+    local('Degular Semibold'),
+    local('Degular-Semibold'),
+    local('Degular Medium'),
+    local('Degular-Medium'),
+    local('Degular');
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: block;
+}
 
 :root {
   --bg: #0a0a0d;
@@ -32,7 +43,7 @@ body {
     radial-gradient(circle at top right, rgba(255, 245, 0, 0.08), transparent 24%),
     linear-gradient(180deg, #09090c 0%, #111117 100%);
   color: var(--text);
-  font-family: 'Archivo', sans-serif;
+  font-family: 'Degular', 'Helvetica Neue', Helvetica, Arial, sans-serif;
   overflow: auto;
 }
 

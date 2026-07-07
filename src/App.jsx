@@ -9,6 +9,7 @@ import {
   RotateCcw,
   Settings2,
   SquareDashedMousePointer,
+  Type,
   Upload,
 } from 'lucide-react';
 import {
@@ -35,9 +36,9 @@ const MP4_MEDIA_RECORDER_CANDIDATES = [
 ];
 
 const EXPORT_PRESETS = [
-  { id: 'instagram-post', label: 'Post', presetId: 'square', duration: 5, fps: 30, rate: 1, loop: true },
-  { id: 'instagram-story', label: 'Story', presetId: 'story', duration: 6, fps: 30, rate: 1, loop: true },
-  { id: 'instagram-reel', label: 'Reel', presetId: 'story', duration: 8, fps: 30, rate: 1, loop: true },
+  { id: 'instagram-post', label: 'Post 1080x1080', presetId: 'square', duration: 15, fps: 30, rate: 1, loop: true },
+  { id: 'instagram-story', label: 'Story 1080x1920', presetId: 'story', duration: 15, fps: 30, rate: 1, loop: true },
+  { id: 'instagram-reel', label: 'Reel 1080x1920', presetId: 'story', duration: 15, fps: 30, rate: 1, loop: true },
 ];
 
 const deepSet = (source, path, value) => {
@@ -55,6 +56,58 @@ const deepSet = (source, path, value) => {
     original = original[key];
   });
   return clone;
+};
+
+const clampVideoTime = (duration, time) => {
+  if (!Number.isFinite(duration) || duration <= 0) {
+    return Math.max(0, time);
+  }
+  const wrapped = ((time % duration) + duration) % duration;
+  return Math.min(wrapped, Math.max(0, duration - 0.001));
+};
+
+const syncVideoFrame = async (video, time, fps) => {
+  if (!video || video.readyState < 2) {
+    return;
+  }
+  const targetTime = clampVideoTime(video.duration, time);
+  const tolerance = 1 / Math.max(12, fps * 2);
+  if (Math.abs(video.currentTime - targetTime) <= tolerance) {
+    return;
+  }
+
+  await new Promise((resolve) => {
+    let settled = false;
+    const finish = () => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      resolve();
+    };
+    const timeoutId = window.setTimeout(finish, 180);
+    const cleanup = () => {
+      window.clearTimeout(timeoutId);
+      video.removeEventListener('seeked', handleSeeked);
+      video.removeEventListener('error', handleError);
+    };
+    const handleSeeked = () => {
+      cleanup();
+      finish();
+    };
+    const handleError = () => {
+      cleanup();
+      finish();
+    };
+    video.addEventListener('seeked', handleSeeked, { once: true });
+    video.addEventListener('error', handleError, { once: true });
+    try {
+      video.currentTime = targetTime;
+    } catch (error) {
+      cleanup();
+      finish();
+    }
+  });
 };
 
 const useElementSize = (ref) => {
@@ -116,6 +169,15 @@ const ToggleField = ({ label, checked, onChange }) => (
   </label>
 );
 
+const TextAreaField = ({ label, value, onChange, rows = 2 }) => (
+  <label className="field">
+    <div className="field__head">
+      <span>{label}</span>
+    </div>
+    <textarea rows={rows} value={value} onChange={(event) => onChange(event.target.value)} />
+  </label>
+);
+
 const ColorField = ({ label, value, onChange }) => (
   <label className="field">
     <div className="field__head">
@@ -151,23 +213,31 @@ const TEXT_SWATCHES = [
   '#FF66FF',
 ];
 
+const DWD_TEXT_SWATCHES = ['#FFFFFF', '#000000', '#3355FF', '#FFF500'];
+
 const getAepInfoLayout = (presetId) => {
   if (presetId === 'story') {
     return {
-      dateX: 0.075,
-      dateY: 0.042,
-      titleX: 0.315,
-      titleY: 0.042,
-      metaX: 0.315,
-      metaY: 0.155,
-      emailX: 0.075,
-      emailY: 0.925,
+      dateX: 0.048,
+      dateY: 0.026,
+      titleX: 0.5,
+      titleY: 0.13,
+      title2Y: 0.665,
+      titleMaxWidth: 0.82,
+      titleLineHeight: 0.9,
+      metaX: 0.952,
+      metaY: 0.026,
+      emailX: 0.048,
+      emailY: 0.93,
+      locationX: 0.952,
+      locationY: 0.952,
       logoX: 0.92,
       logoY: 0.94,
-      dateSize: 52,
-      titleSize: 62,
-      metaSize: 28,
-      emailSize: 32,
+      dateSize: 54,
+      titleSize: 148,
+      metaSize: 48,
+      emailSize: 43,
+      locationSize: 43,
     };
   }
 
@@ -192,19 +262,25 @@ const getAepInfoLayout = (presetId) => {
 
   return {
     dateX: 0.032,
-    dateY: 0.031,
-    titleX: 0.254,
-    titleY: 0.031,
-    metaX: 0.254,
-    metaY: 0.138,
+    dateY: 0.026,
+    titleX: 0.5,
+    titleY: 0.13,
+    title2Y: 0.665,
+    titleMaxWidth: 0.82,
+    titleLineHeight: 0.9,
+    metaX: 0.944,
+    metaY: 0.03,
     emailX: 0.032,
-    emailY: 0.907,
+    emailY: 0.915,
+    locationX: 0.944,
+    locationY: 0.952,
     logoX: 0.92,
     logoY: 0.94,
-    dateSize: 48,
-    titleSize: 56,
-    metaSize: 26,
-    emailSize: 32,
+    dateSize: 44,
+    titleSize: 128,
+    metaSize: 40,
+    emailSize: 38,
+    locationSize: 38,
   };
 };
 
@@ -217,7 +293,7 @@ const getInfoLayoutPresets = (presetId) => {
       label: 'AEP Auto',
       values: {
         ...aep,
-        weight: 500,
+        weight: 600,
       },
     },
     {
@@ -278,6 +354,28 @@ const getInfoLayoutPresets = (presetId) => {
         weight: 500,
       },
     },
+    {
+      id: 'editorial-content',
+      label: 'Original Content',
+      values: {
+        ...aep,
+        dateX: presetId === 'story' ? 0.07 : 0.055,
+        dateY: presetId === 'story' ? 0.04 : 0.04,
+        titleX: presetId === 'story' ? 0.07 : 0.055,
+        titleY: presetId === 'story' ? 0.095 : 0.085,
+        metaX: presetId === 'story' ? 0.07 : 0.055,
+        metaY: presetId === 'story' ? 0.79 : 0.81,
+        emailX: presetId === 'story' ? 0.07 : 0.055,
+        emailY: presetId === 'story' ? 0.94 : 0.93,
+        logoX: 0.92,
+        logoY: 0.94,
+        titleSize: Math.round(aep.titleSize * 0.92),
+        metaSize: Math.round(aep.metaSize * 0.96),
+        dateSize: Math.round(aep.dateSize * 0.88),
+        emailSize: Math.round(aep.emailSize * 0.9),
+        weight: 500,
+      },
+    },
   ];
 };
 
@@ -312,36 +410,64 @@ const App = () => {
   const [assetVersion, setAssetVersion] = useState(0);
   const [previewZoom, setPreviewZoom] = useState(0.72);
   const [isRecording, setIsRecording] = useState(false);
+  const [hasDegular, setHasDegular] = useState(false);
+  const [typoAdvanced, setTypoAdvanced] = useState(false);
   const [draggingTarget, setDraggingTarget] = useState(null);
   const canvasRef = useRef(null);
   const stageRef = useRef(null);
-  const imageCacheRef = useRef(new Map());
+  const assetCacheRef = useRef(new Map());
   const lastTickRef = useRef(0);
   const stageSize = useElementSize(stageRef);
 
   const preset = CANVAS_PRESETS.find((item) => item.id === scene.presetId) ?? CANVAS_PRESETS[0];
   const colorPreset = COLOR_PRESETS.find((item) => item.id === scene.colorPresetId) ?? COLOR_PRESETS[0];
 
-  const getImage = (src) => {
+  const getMedia = (src, kind = scene.mediaKind ?? 'image') => {
     if (!src) {
       return null;
     }
-    const cached = imageCacheRef.current.get(src);
+    const cached = assetCacheRef.current.get(src);
     if (cached?.status === 'loaded') {
-      return cached.image;
+      return cached;
     }
     if (cached?.status === 'loading') {
       return null;
     }
+
+    if (kind === 'video') {
+      const video = document.createElement('video');
+      video.muted = true;
+      video.loop = true;
+      video.playsInline = true;
+      video.preload = 'auto';
+      video.onloadeddata = () => {
+        assetCacheRef.current.set(src, { status: 'loaded', kind: 'video', element: video });
+        setAssetVersion((value) => value + 1);
+      };
+      video.onerror = () => assetCacheRef.current.set(src, { status: 'error', kind: 'video', element: null });
+      video.src = src;
+      video.load();
+      assetCacheRef.current.set(src, { status: 'loading', kind: 'video', element: video });
+      return null;
+    }
+
     const image = new Image();
     image.onload = () => {
-      imageCacheRef.current.set(src, { status: 'loaded', image });
+      assetCacheRef.current.set(src, { status: 'loaded', kind: 'image', element: image });
       setAssetVersion((value) => value + 1);
     };
-    image.onerror = () => imageCacheRef.current.set(src, { status: 'error', image: null });
+    image.onerror = () => assetCacheRef.current.set(src, { status: 'error', kind: 'image', element: null });
     image.src = src;
-    imageCacheRef.current.set(src, { status: 'loading', image: null });
+    assetCacheRef.current.set(src, { status: 'loading', kind: 'image', element: image });
     return null;
+  };
+
+  const syncMediaToTime = async (time) => {
+    const asset = getMedia(scene.mediaSrc, scene.mediaKind);
+    if (!asset || asset.kind !== 'video') {
+      return;
+    }
+    await syncVideoFrame(asset.element, time, scene.playback.fps);
   };
 
   const previewScale = useMemo(() => {
@@ -352,6 +478,15 @@ const App = () => {
   }, [preset.height, preset.width, previewZoom, stageSize.height, stageSize.width]);
 
   const updateScene = (path, value) => setScene((current) => deepSet(current, path, value));
+
+  const requireDegular = () => {
+    const loaded = document.fonts?.check('600 32px Degular') ?? false;
+    setHasDegular(loaded);
+    if (!loaded) {
+      window.alert('Degular ist nicht geladen. Export ist gesperrt, damit keine falsche Typografie ausgegeben wird.');
+    }
+    return loaded;
+  };
 
   const applyColorPreset = (presetId) => {
     const scheme = COLOR_PRESETS.find((item) => item.id === presetId);
@@ -433,9 +568,13 @@ const App = () => {
       if (!maskPreset) {
         return current;
       }
+      const infoLayoutValues = combo.infoLayoutPresetId
+        ? getInfoLayoutPresets(current.presetId).find((item) => item.id === combo.infoLayoutPresetId)?.values
+        : null;
       return {
         ...current,
         motionPresetId: motionPreset.id,
+        infoLayoutPresetId: combo.infoLayoutPresetId ?? current.infoLayoutPresetId,
         mask: {
           ...current.mask,
           ...maskPreset,
@@ -452,20 +591,34 @@ const App = () => {
           height: maskPreset.height,
           y: maskPreset.stageY ?? current.stage.y,
         },
+        ...(infoLayoutValues
+          ? {
+              infoLayer: {
+                ...current.infoLayer,
+                ...infoLayoutValues,
+              },
+            }
+          : {}),
       };
     });
   };
 
-  const handleImageUpload = (event) => {
+  const handleMediaUpload = (event) => {
     const file = event.target.files?.[0];
     if (!file) {
       return;
     }
     const src = URL.createObjectURL(file);
+    const mediaKind = file.type.startsWith('video/') ? 'video' : 'image';
     setScene((current) => ({
       ...current,
-      imageSrc: src,
-      imageName: file.name,
+      mediaSrc: src,
+      mediaName: file.name,
+      mediaKind,
+      playback: {
+        ...current.playback,
+        time: 0,
+      },
     }));
     event.target.value = '';
   };
@@ -485,6 +638,29 @@ const App = () => {
         preserveColor: true,
       },
     }));
+    event.target.value = '';
+  };
+
+  const handleFontUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+    const src = URL.createObjectURL(file);
+    try {
+      const face = new FontFace('Degular', `url(${src})`, {
+        style: 'normal',
+        weight: '400 800',
+      });
+      await face.load();
+      document.fonts.add(face);
+      setHasDegular(document.fonts?.check('600 32px Degular') ?? true);
+      setAssetVersion((value) => value + 1);
+    } catch (error) {
+      console.error(error);
+      window.alert('Degular konnte nicht geladen werden. Bitte OTF, TTF, WOFF oder WOFF2 verwenden.');
+      URL.revokeObjectURL(src);
+    }
     event.target.value = '';
   };
 
@@ -514,14 +690,20 @@ const App = () => {
         dateY: layout.dateY,
         titleX: layout.titleX,
         titleY: layout.titleY,
+        title2Y: layout.title2Y,
+        titleMaxWidth: layout.titleMaxWidth,
+        titleLineHeight: layout.titleLineHeight,
         metaX: layout.metaX,
         metaY: layout.metaY,
         emailX: layout.emailX,
         emailY: layout.emailY,
+        locationX: layout.locationX,
+        locationY: layout.locationY,
         dateSize: layout.dateSize,
         titleSize: layout.titleSize,
         metaSize: layout.metaSize,
         emailSize: layout.emailSize,
+        locationSize: layout.locationSize,
       },
       overlay: {
         ...current.overlay,
@@ -559,6 +741,15 @@ const App = () => {
     setScene((current) => ({
       ...current,
       presetId: presetEntry.presetId,
+      infoLayoutPresetId: 'aep-auto',
+      infoLayer: {
+        ...current.infoLayer,
+        ...getAepInfoLayout(presetEntry.presetId),
+      },
+      overlay: {
+        ...current.overlay,
+        ...getAepInfoLayout(presetEntry.presetId),
+      },
       playback: {
         ...current.playback,
         duration: presetEntry.duration,
@@ -570,12 +761,16 @@ const App = () => {
     }));
   };
 
-  const exportPng = () => {
+  const exportPng = async () => {
+    if (!requireDegular()) {
+      return;
+    }
     const exportCanvas = document.createElement('canvas');
     exportCanvas.width = preset.width;
     exportCanvas.height = preset.height;
     const ctx = exportCanvas.getContext('2d');
-    renderScene({ ctx, width: preset.width, height: preset.height, scene, colors: colorPreset, time: scene.playback.time, getImage });
+    await syncMediaToTime(scene.playback.time);
+    renderScene({ ctx, width: preset.width, height: preset.height, scene, colors: colorPreset, time: scene.playback.time, getAsset: getMedia });
     const link = document.createElement('a');
     link.download = `digilab-mask-frame-${preset.id}-${Date.now()}.png`;
     link.href = exportCanvas.toDataURL('image/png');
@@ -586,12 +781,16 @@ const App = () => {
     const totalFrames = Math.max(1, Math.round(scene.playback.duration * scene.playback.fps));
     for (let frame = 0; frame < totalFrames; frame += 1) {
       const time = (frame / totalFrames) * scene.playback.duration;
-      renderScene({ ctx: targetCtx, width: preset.width, height: preset.height, scene, colors: colorPreset, time, getImage });
+      await syncMediaToTime(time);
+      renderScene({ ctx: targetCtx, width: preset.width, height: preset.height, scene, colors: colorPreset, time, getAsset: getMedia });
       await new Promise((resolve) => window.requestAnimationFrame(resolve));
     }
   };
 
   const exportWebm = async () => {
+    if (!requireDegular()) {
+      return;
+    }
     const sourceCanvas = canvasRef.current;
     if (!sourceCanvas || isRecording) {
       return;
@@ -625,6 +824,9 @@ const App = () => {
   };
 
   const exportMp4 = async () => {
+    if (!requireDegular()) {
+      return;
+    }
     if (isRecording) {
       return;
     }
@@ -730,7 +932,8 @@ const App = () => {
       const totalFrames = Math.max(1, Math.round(scene.playback.duration * fps));
       for (let frame = 0; frame < totalFrames; frame += 1) {
         const time = (frame / totalFrames) * scene.playback.duration;
-        renderScene({ ctx: recorderCtx, width: preset.width, height: preset.height, scene, colors: colorPreset, time, getImage });
+        await syncMediaToTime(time);
+        renderScene({ ctx: recorderCtx, width: preset.width, height: preset.height, scene, colors: colorPreset, time, getAsset: getMedia });
 
         const frameDuration = Math.round(1_000_000 / fps);
         const videoFrame = new window.VideoFrame(recorderCanvas, {
@@ -769,8 +972,28 @@ const App = () => {
   };
 
   useEffect(() => {
-    document.fonts?.ready.then(() => setAssetVersion((value) => value + 1));
+    document.fonts?.ready.then(() => {
+      setHasDegular(document.fonts?.check('600 32px Degular') ?? false);
+      setAssetVersion((value) => value + 1);
+    });
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!scene.mediaSrc || scene.mediaKind !== 'video') {
+      return undefined;
+    }
+    const syncPreview = async () => {
+      await syncMediaToTime(scene.playback.time);
+      if (!cancelled) {
+        setAssetVersion((value) => value + 1);
+      }
+    };
+    syncPreview();
+    return () => {
+      cancelled = true;
+    };
+  }, [scene.mediaKind, scene.mediaSrc, scene.playback.fps, scene.playback.time]);
 
   useEffect(() => {
     if (!scene.playback.playing) {
@@ -813,7 +1036,7 @@ const App = () => {
       return;
     }
     const ctx = canvas.getContext('2d');
-    renderScene({ ctx, width: preset.width, height: preset.height, scene, colors: colorPreset, time: scene.playback.time, getImage });
+    renderScene({ ctx, width: preset.width, height: preset.height, scene, colors: colorPreset, time: scene.playback.time, getAsset: getMedia });
   }, [assetVersion, colorPreset, preset.height, preset.width, scene]);
 
   return (
@@ -861,8 +1084,8 @@ const App = () => {
             onChange={(value) => updateScene('presetId', value)}
           />
           <div className="field-grid">
-            <SliderField label="Dauer" value={scene.playback.duration} min={2} max={12} step={0.5} format={(value) => `${value.toFixed(1)}s`} onChange={(value) => updateScene('playback.duration', value)} />
-            <SliderField label="FPS" value={scene.playback.fps} min={12} max={60} step={1} format={(value) => `${value}`} onChange={(value) => updateScene('playback.fps', value)} />
+            <SliderField label="Dauer" value={scene.playback.duration} min={15} max={15} step={1} format={(value) => `${value.toFixed(0)}s`} onChange={(value) => updateScene('playback.duration', value)} />
+            <SliderField label="FPS" value={scene.playback.fps} min={30} max={30} step={1} format={(value) => `${value}`} onChange={(value) => updateScene('playback.fps', value)} />
           </div>
           <div className="field-grid">
             <SliderField label="Tempo" value={scene.playback.rate} min={0.2} max={2.2} step={0.05} format={(value) => `${value.toFixed(2)}x`} onChange={(value) => updateScene('playback.rate', value)} />
@@ -928,8 +1151,11 @@ const App = () => {
               </button>
             ))}
           </div>
-          <ToggleField label="Custom Hintergrund" checked={scene.useCustomBackground} onChange={(value) => updateScene('useCustomBackground', value)} />
-          <ColorField label="Background" value={scene.backgroundColor} onChange={(value) => updateScene('backgroundColor', value)} />
+          <ToggleField label="Freie Hintergrundfarbe" checked={scene.useCustomBackground} onChange={(value) => updateScene('useCustomBackground', value)} />
+          <ColorField label="Freie Farbe" value={scene.backgroundColor} onChange={(value) => {
+            updateScene('backgroundColor', value);
+            updateScene('useCustomBackground', true);
+          }} />
           <div className="field-grid">
             <SliderField label="Stage X" value={scene.stage.x} min={0.2} max={0.8} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('stage.x', value)} />
             <SliderField label="Stage Y" value={scene.stage.y} min={0.2} max={0.8} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('stage.y', value)} />
@@ -959,8 +1185,17 @@ const App = () => {
         </Section>
 
         <Section title="Media" icon={ImagePlus}>
-          <UploadButton label={scene.imageSrc ? 'Bild ersetzen' : 'Bild hochladen'} accept="image/*" onSelect={handleImageUpload} />
-          <div className="asset-note">{scene.imageName || 'Noch kein Bild geladen'}</div>
+          <UploadButton
+            label={scene.mediaSrc ? 'Medium ersetzen' : 'Bild oder MP4 hochladen'}
+            accept="image/*,video/mp4,video/webm,video/quicktime,video/x-m4v"
+            onSelect={handleMediaUpload}
+          />
+          <div className="asset-note">
+            {scene.mediaName ? `${scene.mediaName} · ${scene.mediaKind === 'video' ? 'Video' : 'Bild'}` : 'Noch kein Bild oder Video geladen'}
+          </div>
+          {scene.mediaKind === 'video' && scene.mediaSrc && (
+            <div className="asset-note">Videos werden mit dem Playhead gesynct und zusammen mit der Mask-Animation exportiert.</div>
+          )}
           <div className="field-grid">
             <SliderField label="Image Scale" value={scene.imageMotion.scale} min={0.7} max={1.8} step={0.01} format={(value) => `${value.toFixed(2)}x`} onChange={(value) => updateScene('imageMotion.scale', value)} />
             <SliderField label="Zoom Pulse" value={scene.imageMotion.zoom} min={0} max={0.35} step={0.01} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('imageMotion.zoom', value)} />
@@ -1055,16 +1290,18 @@ const App = () => {
           </div>
         </Section>
 
-        <Section title="Info Text" icon={Settings2} defaultOpen={false}>
+        <Section title="Info Text" icon={Type} defaultOpen={false}>
           <ToggleField label="Infos anzeigen" checked={scene.infoLayer.show} onChange={(value) => updateScene('infoLayer.show', value)} />
           <SelectField
             label="Text Layout Preset"
             value={scene.infoLayoutPresetId ?? 'aep-auto'}
-            options={getInfoLayoutPresets(scene.presetId).map((item) => ({ value: item.id, label: item.label }))}
+            options={getInfoLayoutPresets(scene.presetId).filter((item) => item.id === 'aep-auto').map((item) => ({ value: item.id, label: item.label }))}
             onChange={applyInfoLayoutPreset}
           />
+          <UploadButton label="Degular laden" accept=".otf,.ttf,.woff,.woff2,font/*" onSelect={handleFontUpload} />
+          <div className="asset-note">{hasDegular ? 'Schrift: Degular geladen.' : 'Schrift: Degular fehlt. Export bleibt gesperrt.'}</div>
           <div className="button-row">
-            {getInfoLayoutPresets(scene.presetId).map((item) => (
+            {getInfoLayoutPresets(scene.presetId).filter((item) => item.id === 'aep-auto').map((item) => (
               <button key={item.id} className="ghost-button small-chip" type="button" onClick={() => applyInfoLayoutPreset(item.id)}>
                 {item.label}
               </button>
@@ -1075,56 +1312,28 @@ const App = () => {
             </button>
           </div>
           <div className="field-grid">
-            <label className="field">
-              <div className="field__head">
-                <span>Datum</span>
-              </div>
-              <input type="text" value={scene.infoLayer.date} onChange={(event) => updateScene('infoLayer.date', event.target.value)} />
-            </label>
-            <label className="field">
-              <div className="field__head">
-                <span>Mail</span>
-              </div>
-              <input type="text" value={scene.infoLayer.email} onChange={(event) => updateScene('infoLayer.email', event.target.value)} />
-            </label>
+            <TextAreaField label="Datum" value={scene.infoLayer.date} onChange={(value) => updateScene('infoLayer.date', value)} rows={2} />
+            <TextAreaField label="Anmeldung" value={scene.infoLayer.email} onChange={(value) => updateScene('infoLayer.email', value)} rows={2} />
           </div>
           <label className="field">
             <div className="field__head">
               <span>Titel Zeile 1</span>
             </div>
-            <input type="text" value={scene.infoLayer.title1} onChange={(event) => updateScene('infoLayer.title1', event.target.value)} />
+            <textarea rows={2} value={scene.infoLayer.title1} onChange={(event) => updateScene('infoLayer.title1', event.target.value)} />
           </label>
           <label className="field">
             <div className="field__head">
               <span>Titel Zeile 2</span>
             </div>
-            <input type="text" value={scene.infoLayer.title2} onChange={(event) => updateScene('infoLayer.title2', event.target.value)} />
+            <textarea rows={2} value={scene.infoLayer.title2} onChange={(event) => updateScene('infoLayer.title2', event.target.value)} />
           </label>
           <div className="field-grid">
-            <label className="field">
-              <div className="field__head">
-                <span>Start</span>
-              </div>
-              <input type="text" value={scene.infoLayer.start} onChange={(event) => updateScene('infoLayer.start', event.target.value)} />
-            </label>
-            <label className="field">
-              <div className="field__head">
-                <span>Dauer</span>
-              </div>
-              <input type="text" value={scene.infoLayer.duration} onChange={(event) => updateScene('infoLayer.duration', event.target.value)} />
-            </label>
+            <TextAreaField label="Start" value={scene.infoLayer.start} onChange={(value) => updateScene('infoLayer.start', value)} rows={2} />
+            <TextAreaField label="Dauer" value={scene.infoLayer.duration} onChange={(value) => updateScene('infoLayer.duration', value)} rows={2} />
           </div>
-          <label className="field">
-            <div className="field__head">
-              <span>Ort</span>
-            </div>
-            <input type="text" value={scene.infoLayer.location} onChange={(event) => updateScene('infoLayer.location', event.target.value)} />
-          </label>
-          <ColorField label="Titel Farbe" value={scene.infoLayer.titleColor} onChange={(value) => updateScene('infoLayer.titleColor', value)} />
-          <ColorField label="Meta Farbe" value={scene.infoLayer.metaColor} onChange={(value) => updateScene('infoLayer.metaColor', value)} />
-          <ColorField label="Mail Farbe" value={scene.infoLayer.emailColor} onChange={(value) => updateScene('infoLayer.emailColor', value)} />
+          <TextAreaField label="Ort" value={scene.infoLayer.location} onChange={(value) => updateScene('infoLayer.location', value)} rows={2} />
           <div className="swatch-row">
-            {TEXT_SWATCHES.map((color) => (
+            {DWD_TEXT_SWATCHES.map((color) => (
               <button
                 key={color}
                 type="button"
@@ -1140,31 +1349,41 @@ const App = () => {
               />
             ))}
           </div>
-          <div className="field-grid">
-            <SliderField label="Datum Size" value={scene.infoLayer.dateSize} min={18} max={88} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('infoLayer.dateSize', value)} />
-            <SliderField label="Titel Size" value={scene.infoLayer.titleSize} min={20} max={120} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('infoLayer.titleSize', value)} />
-          </div>
-          <div className="field-grid">
-            <SliderField label="Meta Size" value={scene.infoLayer.metaSize} min={14} max={64} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('infoLayer.metaSize', value)} />
-            <SliderField label="Mail Size" value={scene.infoLayer.emailSize} min={16} max={72} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('infoLayer.emailSize', value)} />
-          </div>
-          <div className="field-grid">
-            <SliderField label="Datum X" value={scene.infoLayer.dateX ?? scene.infoLayer.eventX} min={0.01} max={0.9} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.dateX', value)} />
-            <SliderField label="Datum Y" value={scene.infoLayer.dateY ?? scene.infoLayer.eventY} min={0.01} max={0.9} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.dateY', value)} />
-          </div>
-          <div className="field-grid">
-            <SliderField label="Titel X" value={scene.infoLayer.titleX ?? getAepInfoLayout(scene.presetId).titleX} min={0.01} max={0.95} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.titleX', value)} />
-            <SliderField label="Titel Y" value={scene.infoLayer.titleY ?? getAepInfoLayout(scene.presetId).titleY} min={0.01} max={0.9} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.titleY', value)} />
-          </div>
-          <div className="field-grid">
-            <SliderField label="Meta X" value={scene.infoLayer.metaX ?? getAepInfoLayout(scene.presetId).metaX} min={0.01} max={0.95} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.metaX', value)} />
-            <SliderField label="Meta Y" value={scene.infoLayer.metaY ?? getAepInfoLayout(scene.presetId).metaY} min={0.01} max={0.95} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.metaY', value)} />
-          </div>
-          <div className="field-grid">
-            <SliderField label="Mail X" value={scene.infoLayer.emailX} min={0.01} max={0.9} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.emailX', value)} />
-            <SliderField label="Mail Y" value={scene.infoLayer.emailY} min={0.01} max={0.98} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.emailY', value)} />
-          </div>
-          <SliderField label="Weight" value={scene.infoLayer.weight} min={300} max={700} step={100} format={(value) => `${Math.round(value)}`} onChange={(value) => updateScene('infoLayer.weight', value)} />
+          <ToggleField label="Typo Advanced" checked={typoAdvanced} onChange={setTypoAdvanced} />
+          {!typoAdvanced && <div className="asset-note">Typogröße, Position, Laufweite und Gewicht sind CI-gebunden.</div>}
+          {typoAdvanced && (
+            <>
+              <div className="asset-note">Advanced verändert die CI-Satzwerte bewusst.</div>
+              <div className="field-grid">
+                <SliderField label="Datum Size" value={scene.infoLayer.dateSize} min={18} max={88} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('infoLayer.dateSize', value)} />
+                <SliderField label="Titel Size" value={scene.infoLayer.titleSize} min={42} max={180} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('infoLayer.titleSize', value)} />
+              </div>
+              <div className="field-grid">
+                <SliderField label="Meta Size" value={scene.infoLayer.metaSize} min={14} max={72} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('infoLayer.metaSize', value)} />
+                <SliderField label="Mail Size" value={scene.infoLayer.emailSize} min={16} max={72} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('infoLayer.emailSize', value)} />
+              </div>
+              <div className="field-grid">
+                <SliderField label="Titel Y" value={scene.infoLayer.titleY ?? getAepInfoLayout(scene.presetId).titleY} min={0.02} max={0.9} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.titleY', value)} />
+                <SliderField label="Titel 2 Y" value={scene.infoLayer.title2Y ?? getAepInfoLayout(scene.presetId).title2Y} min={0.02} max={0.96} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.title2Y', value)} />
+              </div>
+              <div className="field-grid">
+                <SliderField label="Titel Breite" value={scene.infoLayer.titleMaxWidth ?? 0.82} min={0.3} max={0.96} step={0.01} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.titleMaxWidth', value)} />
+                <SliderField label="Zeilenabstand" value={scene.infoLayer.titleLineHeight ?? 0.9} min={0.72} max={1.35} step={0.01} onChange={(value) => updateScene('infoLayer.titleLineHeight', value)} />
+              </div>
+              <div className="field-grid">
+                <SliderField label="Datum X" value={scene.infoLayer.dateX ?? scene.infoLayer.eventX} min={0.01} max={0.9} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.dateX', value)} />
+                <SliderField label="Datum Y" value={scene.infoLayer.dateY ?? scene.infoLayer.eventY} min={0.01} max={0.9} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.dateY', value)} />
+              </div>
+              <div className="field-grid">
+                <SliderField label="Meta X" value={scene.infoLayer.metaX ?? getAepInfoLayout(scene.presetId).metaX} min={0.01} max={0.98} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.metaX', value)} />
+                <SliderField label="Meta Y" value={scene.infoLayer.metaY ?? getAepInfoLayout(scene.presetId).metaY} min={0.01} max={0.95} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.metaY', value)} />
+              </div>
+              <div className="field-grid">
+                <SliderField label="Mail X" value={scene.infoLayer.emailX} min={0.01} max={0.9} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.emailX', value)} />
+                <SliderField label="Mail Y" value={scene.infoLayer.emailY} min={0.01} max={0.98} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.emailY', value)} />
+              </div>
+            </>
+          )}
         </Section>
 
         <Section title="Export" icon={Film} defaultOpen={false}>
@@ -1190,9 +1409,9 @@ const App = () => {
         <div className="workspace__header">
           <div>
             <div className="eyebrow">Preview</div>
-            <h2>Bild hinter pixeliger Form mit turbulenter Wellenbewegung, für Story, Post und weitere Instagram-Formate.</h2>
+            <h2>Bild oder Video hinter pixeliger Form mit turbulenter Wellenbewegung, für Story, Post und weitere Instagram-Formate.</h2>
           </div>
-          <p>Die Vorschau bleibt beim Einstellen sichtbar, damit Komposition, Text und Logo jederzeit im Blick bleiben.</p>
+          <p>Die Vorschau bleibt beim Einstellen sichtbar, damit Komposition, Typo, Content und Logo jederzeit im Blick bleiben.</p>
         </div>
 
         <div className="stage-shell" ref={stageRef}>
@@ -1249,7 +1468,7 @@ const App = () => {
                 }}
               />
             )}
-            {scene.infoLayer.show && (
+            {(scene.guides.showGrid || typoAdvanced) && scene.infoLayer.show && (
               <>
                 <button
                   type="button"

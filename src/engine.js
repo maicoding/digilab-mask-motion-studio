@@ -4,6 +4,11 @@ const tintCache = new Map();
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const fract = (value) => value - Math.floor(value);
 const TAU = Math.PI * 2;
+const DWD_LEADING = {
+  micro: 1.02,
+  meta: 1.08,
+  title: 0.94,
+};
 
 const getScratchCanvas = (key, width, height) => {
   let canvas = scratch.get(key);
@@ -150,7 +155,26 @@ const drawStage = (ctx, width, height, stage) => {
   return { x, y, width: stageWidth, height: stageHeight };
 };
 
-const drawMaskedImage = (ctx, bounds, scene, phase, image, colors) => {
+const getAssetDimensions = (asset) => {
+  if (!asset) {
+    return null;
+  }
+  if ('videoWidth' in asset && asset.videoWidth > 0 && asset.videoHeight > 0) {
+    return {
+      width: asset.videoWidth,
+      height: asset.videoHeight,
+    };
+  }
+  if ('width' in asset && asset.width > 0 && asset.height > 0) {
+    return {
+      width: asset.width,
+      height: asset.height,
+    };
+  }
+  return null;
+};
+
+const drawMaskedAsset = (ctx, bounds, scene, phase, asset, colors) => {
   const maskSize = Math.round(Math.max(36, scene.mask.pixelSize));
   const maskCanvas = getScratchCanvas(`mask:${scene.mask.presetId}:${maskSize}`, maskSize, maskSize);
   drawPixelMask(maskCanvas, scene.mask, phase, '#ffffff');
@@ -161,7 +185,8 @@ const drawMaskedImage = (ctx, bounds, scene, phase, image, colors) => {
   contentCtx.fillStyle = colors.placeholder;
   contentCtx.fillRect(0, 0, contentCanvas.width, contentCanvas.height);
 
-  if (image) {
+  const dimensions = getAssetDimensions(asset);
+  if (asset && dimensions) {
     const zoomCycles = Math.max(1, Math.round(scene.imageMotion.zoomSpeed ?? 1));
     const rotateCycles = Math.max(1, Math.round(scene.imageMotion.rotateSpeed ?? 1));
     const orbitCycles = Math.max(1, Math.round(scene.imageMotion.orbitCycles ?? 1));
@@ -169,13 +194,13 @@ const drawMaskedImage = (ctx, bounds, scene, phase, image, colors) => {
     const driftY = Math.cos(TAU * phase) * scene.imageMotion.driftY + Math.cos(TAU * phase * orbitCycles + 0.9) * (scene.imageMotion.orbit ?? 0);
     const zoom = 1 + Math.sin(TAU * phase * zoomCycles) * scene.imageMotion.zoom;
     const rotation = Math.sin(TAU * phase * rotateCycles) * scene.imageMotion.rotate;
-    const fitScale = Math.max(contentCanvas.width / image.width, contentCanvas.height / image.height) * scene.imageMotion.scale * zoom;
-    const drawWidth = image.width * fitScale;
-    const drawHeight = image.height * fitScale;
+    const fitScale = Math.max(contentCanvas.width / dimensions.width, contentCanvas.height / dimensions.height) * scene.imageMotion.scale * zoom;
+    const drawWidth = dimensions.width * fitScale;
+    const drawHeight = dimensions.height * fitScale;
     contentCtx.save();
     contentCtx.translate(contentCanvas.width / 2 + driftX * contentCanvas.width, contentCanvas.height / 2 + driftY * contentCanvas.height);
     contentCtx.rotate((rotation * Math.PI) / 180);
-    contentCtx.drawImage(image, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
+    contentCtx.drawImage(asset, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
     contentCtx.restore();
   }
 
@@ -210,11 +235,54 @@ const drawLogo = (ctx, width, height, overlay, logoImage) => {
   ctx.drawImage(renderTarget, x, y, logoWidth, logoHeight);
 };
 
+const fitFontSize = (ctx, lines, maxWidth, initialSize, weight, fontFamily) => {
+  let size = initialSize;
+  while (size > 24) {
+    ctx.font = `${weight} ${size}px "${fontFamily}", "Helvetica Neue", Helvetica, Arial, sans-serif`;
+    const widest = Math.max(...lines.map((line) => ctx.measureText(line).width), 0);
+    if (widest <= maxWidth) {
+      return size;
+    }
+    size -= 2;
+  }
+  return size;
+};
+
+const wrapTitle = (ctx, text, maxWidth) => {
+  const words = String(text ?? '').toUpperCase().trim().split(/\s+/).filter(Boolean);
+  const lines = [];
+  let current = '';
+  words.forEach((word) => {
+    const next = current ? `${current} ${word}` : word;
+    if (current && ctx.measureText(next).width > maxWidth) {
+      lines.push(current);
+      current = word;
+    } else {
+      current = next;
+    }
+  });
+  if (current) {
+    lines.push(current);
+  }
+  return lines.length ? lines : [''];
+};
+
+const drawLines = (ctx, lines, x, y, lineHeight) => {
+  lines.forEach((line, index) => {
+    ctx.fillText(line, x, y + lineHeight * index);
+  });
+};
+
 const drawInfoLayer = (ctx, width, height, infoLayer) => {
   if (!infoLayer?.show) {
     return;
   }
+  const fontFamily = infoLayer.fontFamily ?? 'Degular';
   ctx.save();
+  ctx.fontKerning = 'normal';
+  if ('letterSpacing' in ctx) {
+    ctx.letterSpacing = '0px';
+  }
   ctx.textBaseline = 'top';
   ctx.textAlign = 'left';
 
@@ -222,36 +290,69 @@ const drawInfoLayer = (ctx, width, height, infoLayer) => {
   const titleSize = Math.max(18, Math.round(infoLayer.titleSize));
   const metaSize = Math.max(12, Math.round(infoLayer.metaSize));
   const emailSize = Math.max(12, Math.round(infoLayer.emailSize));
+  const locationSize = Math.max(12, Math.round(infoLayer.locationSize ?? infoLayer.emailSize));
+  const weight = infoLayer.weight ?? 600;
 
   const dateX = width * (infoLayer.dateX ?? infoLayer.eventX ?? 0.04);
   const dateY = height * (infoLayer.dateY ?? infoLayer.eventY ?? 0.05);
   const titleX = width * (infoLayer.titleX ?? 0.25);
   const titleY = height * (infoLayer.titleY ?? 0.06);
+  const title2Y = height * (infoLayer.title2Y ?? 0);
   const metaX = width * (infoLayer.metaX ?? 0.25);
   const metaY = height * (infoLayer.metaY ?? 0.16);
+  const emailX = width * infoLayer.emailX;
+  const emailY = height * infoLayer.emailY;
+  const locationX = width * (infoLayer.locationX ?? 0.94);
+  const locationY = height * (infoLayer.locationY ?? 0.94);
 
   ctx.fillStyle = infoLayer.dateColor;
-  ctx.font = `${infoLayer.weight ?? 500} ${dateSize}px "Degular", "Helvetica Neue", Helvetica, Arial, sans-serif`;
-  ctx.fillText(infoLayer.date, dateX, dateY);
+  ctx.font = `${weight} ${dateSize}px "${fontFamily}", "Helvetica Neue", Helvetica, Arial, sans-serif`;
+  drawLines(ctx, String(infoLayer.date ?? '').split('\n'), dateX, dateY, dateSize * DWD_LEADING.micro);
 
-  ctx.fillStyle = infoLayer.titleColor;
-  ctx.font = `${Math.min(700, (infoLayer.weight ?? 500) + 100)} ${titleSize}px "Degular", "Helvetica Neue", Helvetica, Arial, sans-serif`;
-  ctx.fillText(infoLayer.title1, titleX, titleY);
-  ctx.fillText(infoLayer.title2, titleX, titleY + titleSize * 0.9);
-
+  ctx.textAlign = 'right';
   ctx.fillStyle = infoLayer.metaColor;
-  ctx.font = `${infoLayer.weight ?? 500} ${metaSize}px "Degular", "Helvetica Neue", Helvetica, Arial, sans-serif`;
-  ctx.fillText(infoLayer.start, metaX, metaY);
-  ctx.fillText(infoLayer.duration, metaX, metaY + metaSize * 1.08);
-  ctx.fillText(infoLayer.location, metaX, metaY + metaSize * 2.16);
+  ctx.font = `${weight} ${metaSize}px "${fontFamily}", "Helvetica Neue", Helvetica, Arial, sans-serif`;
+  const startLines = String(infoLayer.start ?? '').split('\n');
+  const durationLines = String(infoLayer.duration ?? '').split('\n');
+  drawLines(ctx, startLines, metaX, metaY, metaSize * DWD_LEADING.meta);
+  drawLines(ctx, durationLines, metaX, metaY + startLines.length * metaSize * DWD_LEADING.meta, metaSize * DWD_LEADING.meta);
 
+  ctx.textAlign = 'center';
+  ctx.fillStyle = infoLayer.titleColor;
+  ctx.font = `${Math.min(800, weight + 100)} ${titleSize}px "${fontFamily}", "Helvetica Neue", Helvetica, Arial, sans-serif`;
+  const maxTitleWidth = width * (infoLayer.titleMaxWidth ?? 0.86);
+  const titleLines = wrapTitle(ctx, infoLayer.title1, maxTitleWidth);
+  const subTitleLines = wrapTitle(ctx, infoLayer.title2, maxTitleWidth);
+  const allTitleLines = [...titleLines, ...subTitleLines];
+  const fittedTitleSize = fitFontSize(ctx, allTitleLines, maxTitleWidth, titleSize, Math.min(800, weight + 100), fontFamily);
+  const lineHeight = fittedTitleSize * (infoLayer.titleLineHeight ?? DWD_LEADING.title);
+  ctx.font = `${Math.min(800, weight + 100)} ${fittedTitleSize}px "${fontFamily}", "Helvetica Neue", Helvetica, Arial, sans-serif`;
+  if (infoLayer.title2Y) {
+    titleLines.forEach((line, index) => {
+      ctx.fillText(line, titleX, titleY + lineHeight * index);
+    });
+    subTitleLines.forEach((line, index) => {
+      ctx.fillText(line, titleX, title2Y + lineHeight * index);
+    });
+  } else {
+    allTitleLines.forEach((line, index) => {
+      ctx.fillText(line, titleX, titleY + lineHeight * index);
+    });
+  }
+
+  ctx.textAlign = 'left';
   ctx.fillStyle = infoLayer.emailColor;
-  ctx.font = `${infoLayer.weight ?? 500} ${emailSize}px "Degular", "Helvetica Neue", Helvetica, Arial, sans-serif`;
-  ctx.fillText(infoLayer.email, width * infoLayer.emailX, height * infoLayer.emailY);
+  ctx.font = `${weight} ${emailSize}px "${fontFamily}", "Helvetica Neue", Helvetica, Arial, sans-serif`;
+  drawLines(ctx, String(infoLayer.email ?? '').split('\n'), emailX, emailY, emailSize * DWD_LEADING.micro);
+
+  ctx.textAlign = 'right';
+  ctx.fillStyle = infoLayer.metaColor;
+  ctx.font = `${weight} ${locationSize}px "${fontFamily}", "Helvetica Neue", Helvetica, Arial, sans-serif`;
+  drawLines(ctx, String(infoLayer.location ?? '').split('\n'), locationX, locationY, locationSize * DWD_LEADING.micro);
   ctx.restore();
 };
 
-export const renderScene = ({ ctx, width, height, scene, colors, time, getImage }) => {
+export const renderScene = ({ ctx, width, height, scene, colors, time, getAsset }) => {
   ctx.clearRect(0, 0, width, height);
   ctx.fillStyle = scene.useCustomBackground ? scene.backgroundColor : colors.background;
   ctx.fillRect(0, 0, width, height);
@@ -262,11 +363,11 @@ export const renderScene = ({ ctx, width, height, scene, colors, time, getImage 
     fill: colors.frame,
   });
 
-  const image = getImage(scene.imageSrc);
-  drawMaskedImage(ctx, bounds, scene, phase, image, colors);
+  const asset = getAsset(scene.mediaSrc, scene.mediaKind)?.element ?? null;
+  drawMaskedAsset(ctx, bounds, scene, phase, asset, colors);
 
   drawInfoLayer(ctx, width, height, scene.infoLayer);
 
-  const logoImage = getImage(scene.overlay.logoSrc);
+  const logoImage = getAsset(scene.overlay.logoSrc, 'image')?.element ?? null;
   drawLogo(ctx, width, height, scene.overlay, logoImage);
 };
