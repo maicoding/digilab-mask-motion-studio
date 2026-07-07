@@ -412,6 +412,7 @@ const App = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [hasDegular, setHasDegular] = useState(false);
   const [typoAdvanced, setTypoAdvanced] = useState(false);
+  const fontInputRef = useRef(null);
   const [draggingTarget, setDraggingTarget] = useState(null);
   const canvasRef = useRef(null);
   const stageRef = useRef(null);
@@ -483,7 +484,7 @@ const App = () => {
     const loaded = document.fonts?.check('600 32px Degular') ?? false;
     setHasDegular(loaded);
     if (!loaded) {
-      window.alert('Degular ist nicht geladen. Export ist gesperrt, damit keine falsche Typografie ausgegeben wird.');
+      fontInputRef.current?.click();
     }
     return loaded;
   };
@@ -658,7 +659,7 @@ const App = () => {
       setAssetVersion((value) => value + 1);
     } catch (error) {
       console.error(error);
-      window.alert('Degular konnte nicht geladen werden. Bitte OTF, TTF, WOFF oder WOFF2 verwenden.');
+      window.alert('Degular-Datei nicht geladen.');
       URL.revokeObjectURL(src);
     }
     event.target.value = '';
@@ -1041,6 +1042,7 @@ const App = () => {
 
   return (
     <div className="app-shell">
+      <input ref={fontInputRef} type="file" accept=".otf,.ttf,.woff,.woff2,font/*" className="sr-only" onChange={handleFontUpload} />
       <aside className="sidebar">
         <div className="sidebar__header">
           <div>
@@ -1299,7 +1301,7 @@ const App = () => {
             onChange={applyInfoLayoutPreset}
           />
           <UploadButton label="Degular laden" accept=".otf,.ttf,.woff,.woff2,font/*" onSelect={handleFontUpload} />
-          <div className="asset-note">{hasDegular ? 'Schrift: Degular geladen.' : 'Schrift: Degular fehlt. Export bleibt gesperrt.'}</div>
+          <div className="asset-note">{hasDegular ? 'Degular geladen' : 'Degular fehlt'}</div>
           <div className="button-row">
             {getInfoLayoutPresets(scene.presetId).filter((item) => item.id === 'aep-auto').map((item) => (
               <button key={item.id} className="ghost-button small-chip" type="button" onClick={() => applyInfoLayoutPreset(item.id)}>
@@ -1350,7 +1352,6 @@ const App = () => {
             ))}
           </div>
           <ToggleField label="Typo Advanced" checked={typoAdvanced} onChange={setTypoAdvanced} />
-          {!typoAdvanced && <div className="asset-note">Typogröße, Position, Laufweite und Gewicht sind CI-gebunden.</div>}
           {typoAdvanced && (
             <>
               <div className="asset-note">Advanced verändert die CI-Satzwerte bewusst.</div>
