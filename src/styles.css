@@ -5,6 +5,10 @@
     local('Degular-Semibold'),
     local('Degular Medium'),
     local('Degular-Medium'),
+    local('Degular Regular'),
+    local('Degular-Regular'),
+    local('Degular Text'),
+    local('Degular Display'),
     local('Degular');
   font-style: normal;
   font-weight: 400 800;

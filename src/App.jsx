@@ -417,6 +417,7 @@ const App = () => {
   const [previewZoom, setPreviewZoom] = useState(0.72);
   const [isRecording, setIsRecording] = useState(false);
   const [hasDegular, setHasDegular] = useState(false);
+  const [adobeDegularActive, setAdobeDegularActive] = useState(true);
   const [typoAdvanced, setTypoAdvanced] = useState(false);
   const fontInputRef = useRef(null);
   const [draggingTarget, setDraggingTarget] = useState(null);
@@ -489,10 +490,10 @@ const App = () => {
   const requireDegular = () => {
     const loaded = document.fonts?.check('600 32px Degular') ?? false;
     setHasDegular(loaded);
-    if (!loaded) {
+    if (!loaded && !adobeDegularActive) {
       fontInputRef.current?.click();
     }
-    return loaded;
+    return loaded || adobeDegularActive;
   };
 
   const applyColorPreset = (presetId) => {
@@ -1307,7 +1308,8 @@ const App = () => {
             onChange={applyInfoLayoutPreset}
           />
           <UploadButton label="Degular laden" accept=".otf,.ttf,.woff,.woff2,font/*" onSelect={handleFontUpload} />
-          <div className="asset-note">{hasDegular ? 'Degular geladen' : 'Degular fehlt'}</div>
+          <ToggleField label="Adobe Fonts Degular aktiv" checked={adobeDegularActive} onChange={setAdobeDegularActive} />
+          <div className="asset-note">{hasDegular || adobeDegularActive ? 'Degular aktiv' : 'Degular fehlt'}</div>
           <div className="button-row">
             {getInfoLayoutPresets(scene.presetId).filter((item) => item.id === 'aep-auto').map((item) => (
               <button key={item.id} className="ghost-button small-chip" type="button" onClick={() => applyInfoLayoutPreset(item.id)}>
