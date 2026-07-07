@@ -1406,14 +1406,6 @@ const App = () => {
       </aside>
 
       <main className="workspace">
-        <div className="workspace__header">
-          <div>
-            <div className="eyebrow">Preview</div>
-            <h2>Bild oder Video hinter pixeliger Form mit turbulenter Wellenbewegung, für Story, Post und weitere Instagram-Formate.</h2>
-          </div>
-          <p>Die Vorschau bleibt beim Einstellen sichtbar, damit Komposition, Typo, Content und Logo jederzeit im Blick bleiben.</p>
-        </div>
-
         <div className="stage-shell" ref={stageRef}>
           <div
             className="stage"
