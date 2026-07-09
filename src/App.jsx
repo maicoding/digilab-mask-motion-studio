@@ -775,6 +775,25 @@ const App = () => {
         loop: presetEntry.loop,
         time: 0,
       },
+      ...(() => {
+        const maskPreset = resolveMaskPresetForCanvas(current.mask.presetId, presetEntry.presetId);
+        if (!maskPreset) {
+          return {};
+        }
+        return {
+          mask: {
+            ...current.mask,
+            ...maskPreset,
+            presetId: maskPreset.id,
+          },
+          stage: {
+            ...current.stage,
+            width: maskPreset.width,
+            height: maskPreset.height,
+            y: maskPreset.stageY ?? current.stage.y,
+          },
+        };
+      })(),
     }));
   };
 

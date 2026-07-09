@@ -174,11 +174,7 @@ const getAssetDimensions = (asset) => {
   return null;
 };
 
-const drawMaskedAsset = (ctx, bounds, scene, phase, asset, colors) => {
-  const maskSize = Math.round(Math.max(36, scene.mask.pixelSize));
-  const maskCanvas = getScratchCanvas(`mask:${scene.mask.presetId}:${maskSize}`, maskSize, maskSize);
-  drawPixelMask(maskCanvas, scene.mask, phase, '#ffffff');
-
+const drawMaskedAsset = (ctx, bounds, scene, phase, asset, colors, maskImage = null) => {
   const contentCanvas = getScratchCanvas(`content:${bounds.width}:${bounds.height}`, Math.ceil(bounds.width), Math.ceil(bounds.height));
   const contentCtx = contentCanvas.getContext('2d');
   contentCtx.clearRect(0, 0, contentCanvas.width, contentCanvas.height);
@@ -208,7 +204,14 @@ const drawMaskedAsset = (ctx, bounds, scene, phase, asset, colors) => {
   const finalMaskCtx = finalMaskCanvas.getContext('2d');
   finalMaskCtx.clearRect(0, 0, finalMaskCanvas.width, finalMaskCanvas.height);
   finalMaskCtx.imageSmoothingEnabled = false;
-  finalMaskCtx.drawImage(maskCanvas, 0, 0, finalMaskCanvas.width, finalMaskCanvas.height);
+  if (maskImage) {
+    finalMaskCtx.drawImage(maskImage, 0, 0, finalMaskCanvas.width, finalMaskCanvas.height);
+  } else {
+    const maskSize = Math.round(Math.max(36, scene.mask.pixelSize));
+    const maskCanvas = getScratchCanvas(`mask:${scene.mask.presetId}:${maskSize}`, maskSize, maskSize);
+    drawPixelMask(maskCanvas, scene.mask, phase, '#ffffff');
+    finalMaskCtx.drawImage(maskCanvas, 0, 0, finalMaskCanvas.width, finalMaskCanvas.height);
+  }
 
   contentCtx.globalCompositeOperation = 'destination-in';
   contentCtx.drawImage(finalMaskCanvas, 0, 0, contentCanvas.width, contentCanvas.height);
@@ -365,7 +368,9 @@ export const renderScene = ({ ctx, width, height, scene, colors, time, getAsset 
   });
 
   const asset = getAsset(scene.mediaSrc, scene.mediaKind)?.element ?? null;
-  drawMaskedAsset(ctx, bounds, scene, phase, asset, colors);
+  const maskImage = scene.mask.maskSrc ? getAsset(scene.mask.maskSrc, 'image')?.element ?? null : null;
+  const maskBounds = maskImage ? { x: 0, y: 0, width, height } : bounds;
+  drawMaskedAsset(ctx, maskBounds, scene, phase, asset, colors, maskImage);
 
   drawInfoLayer(ctx, width, height, scene.infoLayer);
 
