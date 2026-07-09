@@ -420,6 +420,7 @@ export const createInitialScene = () => ({
     emailSize: 38,
     locationSize: 38,
     weight: 600,
+    titleWeight: 700,
     titleMaxWidth: 0.86,
     titleLineHeight: 0.92,
     dateX: 0.032,

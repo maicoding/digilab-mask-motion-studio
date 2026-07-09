@@ -168,6 +168,15 @@ const ALIGN_OPTIONS = [
   { value: 'right', label: 'Rechts' },
 ];
 
+const FONT_WEIGHT_OPTIONS = [
+  { value: '300', label: 'Light 300' },
+  { value: '400', label: 'Regular 400' },
+  { value: '500', label: 'Medium 500' },
+  { value: '600', label: 'Semibold 600' },
+  { value: '700', label: 'Bold 700' },
+  { value: '800', label: 'Heavy 800' },
+];
+
 const ToggleField = ({ label, checked, onChange }) => (
   <label className="toggle">
     <span>{label}</span>
@@ -1369,6 +1378,10 @@ const App = () => {
               <div className="field-grid">
                 <SliderField label="Meta Size" value={scene.infoLayer.metaSize} min={14} max={72} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('infoLayer.metaSize', value)} />
                 <SliderField label="Mail Size" value={scene.infoLayer.emailSize} min={16} max={72} step={1} format={(value) => `${Math.round(value)}px`} onChange={(value) => updateScene('infoLayer.emailSize', value)} />
+              </div>
+              <div className="field-grid">
+                <SelectField label="Titel Schriftschnitt" value={String(scene.infoLayer.titleWeight ?? 700)} options={FONT_WEIGHT_OPTIONS} onChange={(value) => updateScene('infoLayer.titleWeight', Number(value))} />
+                <SelectField label="Text Schriftschnitt" value={String(scene.infoLayer.weight ?? 600)} options={FONT_WEIGHT_OPTIONS} onChange={(value) => updateScene('infoLayer.weight', Number(value))} />
               </div>
               <div className="field-grid">
                 <SliderField label="Titel X" value={scene.infoLayer.titleX ?? getAepInfoLayout(scene.presetId).titleX} min={0.01} max={0.98} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('infoLayer.titleX', value)} />

@@ -290,7 +290,8 @@ const drawInfoLayer = (ctx, width, height, infoLayer) => {
   const metaSize = Math.max(12, Math.round(infoLayer.metaSize));
   const emailSize = Math.max(12, Math.round(infoLayer.emailSize));
   const locationSize = Math.max(12, Math.round(infoLayer.locationSize ?? infoLayer.emailSize));
-  const weight = infoLayer.weight ?? 600;
+  const textWeight = Number(infoLayer.weight ?? 600);
+  const titleWeight = Number(infoLayer.titleWeight ?? Math.min(800, textWeight + 100));
 
   const dateX = width * (infoLayer.dateX ?? infoLayer.eventX ?? 0.04);
   const dateY = height * (infoLayer.dateY ?? infoLayer.eventY ?? 0.05);
@@ -306,12 +307,12 @@ const drawInfoLayer = (ctx, width, height, infoLayer) => {
 
   ctx.textAlign = infoLayer.dateAlign ?? 'left';
   ctx.fillStyle = infoLayer.dateColor;
-  ctx.font = `${weight} ${dateSize}px "${fontFamily}", "Helvetica Neue", Helvetica, Arial, sans-serif`;
+  ctx.font = `${textWeight} ${dateSize}px "${fontFamily}", "Helvetica Neue", Helvetica, Arial, sans-serif`;
   drawLines(ctx, String(infoLayer.date ?? '').split('\n'), dateX, dateY, dateSize * DWD_LEADING.micro);
 
   ctx.textAlign = infoLayer.metaAlign ?? 'right';
   ctx.fillStyle = infoLayer.metaColor;
-  ctx.font = `${weight} ${metaSize}px "${fontFamily}", "Helvetica Neue", Helvetica, Arial, sans-serif`;
+  ctx.font = `${textWeight} ${metaSize}px "${fontFamily}", "Helvetica Neue", Helvetica, Arial, sans-serif`;
   const startLines = String(infoLayer.start ?? '').split('\n');
   const durationLines = String(infoLayer.duration ?? '').split('\n');
   drawLines(ctx, startLines, metaX, metaY, metaSize * DWD_LEADING.meta);
@@ -319,14 +320,14 @@ const drawInfoLayer = (ctx, width, height, infoLayer) => {
 
   ctx.textAlign = infoLayer.titleAlign ?? 'center';
   ctx.fillStyle = infoLayer.titleColor;
-  ctx.font = `${Math.min(800, weight + 100)} ${titleSize}px "${fontFamily}", "Helvetica Neue", Helvetica, Arial, sans-serif`;
+  ctx.font = `${titleWeight} ${titleSize}px "${fontFamily}", "Helvetica Neue", Helvetica, Arial, sans-serif`;
   const maxTitleWidth = width * (infoLayer.titleMaxWidth ?? 0.86);
   const titleLines = wrapTitle(ctx, infoLayer.title1, maxTitleWidth);
   const subTitleLines = wrapTitle(ctx, infoLayer.title2, maxTitleWidth);
   const allTitleLines = [...titleLines, ...subTitleLines];
-  const fittedTitleSize = fitFontSize(ctx, allTitleLines, maxTitleWidth, titleSize, Math.min(800, weight + 100), fontFamily);
+  const fittedTitleSize = fitFontSize(ctx, allTitleLines, maxTitleWidth, titleSize, titleWeight, fontFamily);
   const lineHeight = fittedTitleSize * (infoLayer.titleLineHeight ?? DWD_LEADING.title);
-  ctx.font = `${Math.min(800, weight + 100)} ${fittedTitleSize}px "${fontFamily}", "Helvetica Neue", Helvetica, Arial, sans-serif`;
+  ctx.font = `${titleWeight} ${fittedTitleSize}px "${fontFamily}", "Helvetica Neue", Helvetica, Arial, sans-serif`;
   if (infoLayer.title2Y) {
     titleLines.forEach((line, index) => {
       ctx.fillText(line, titleX, titleY + lineHeight * index);
@@ -342,12 +343,12 @@ const drawInfoLayer = (ctx, width, height, infoLayer) => {
 
   ctx.textAlign = infoLayer.emailAlign ?? 'left';
   ctx.fillStyle = infoLayer.emailColor;
-  ctx.font = `${weight} ${emailSize}px "${fontFamily}", "Helvetica Neue", Helvetica, Arial, sans-serif`;
+  ctx.font = `${textWeight} ${emailSize}px "${fontFamily}", "Helvetica Neue", Helvetica, Arial, sans-serif`;
   drawLines(ctx, String(infoLayer.email ?? '').split('\n'), emailX, emailY, emailSize * DWD_LEADING.micro);
 
   ctx.textAlign = infoLayer.locationAlign ?? 'right';
   ctx.fillStyle = infoLayer.metaColor;
-  ctx.font = `${weight} ${locationSize}px "${fontFamily}", "Helvetica Neue", Helvetica, Arial, sans-serif`;
+  ctx.font = `${textWeight} ${locationSize}px "${fontFamily}", "Helvetica Neue", Helvetica, Arial, sans-serif`;
   drawLines(ctx, String(infoLayer.location ?? '').split('\n'), locationX, locationY, locationSize * DWD_LEADING.micro);
   ctx.restore();
 };
