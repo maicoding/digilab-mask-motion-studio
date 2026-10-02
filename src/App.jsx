@@ -22,10 +22,11 @@ import {
   createInitialScene,
 } from './presets.js';
 import { renderScene } from './engine.js';
+import { loadDegular, fontWeight } from './fonts.js';
 
 const MP4_ENCODER_CANDIDATES = [
-  { codec: 'avc1.42001f', avc: { format: 'avc' } },
-  { codec: 'avc1.4d001f', avc: { format: 'avc' } },
+  { codec: 'avc1.420033', avc: { format: 'avc' } },
+  { codec: 'avc1.4d0033', avc: { format: 'avc' } },
 ];
 
 const MP4_MEDIA_RECORDER_CANDIDATES = [
@@ -72,41 +73,25 @@ const syncVideoFrame = async (video, time, fps) => {
   }
   const targetTime = clampVideoTime(video.duration, time);
   const tolerance = 1 / Math.max(12, fps * 2);
-  if (Math.abs(video.currentTime - targetTime) <= tolerance) {
+  if (!video.seeking && Math.abs(video.currentTime - targetTime) <= tolerance) {
     return;
   }
 
-  await new Promise((resolve) => {
-    let settled = false;
-    const finish = () => {
-      if (settled) {
-        return;
-      }
-      settled = true;
-      resolve();
-    };
-    const timeoutId = window.setTimeout(finish, 180);
+  await new Promise((resolve, reject) => {
     const cleanup = () => {
-      window.clearTimeout(timeoutId);
-      video.removeEventListener('seeked', handleSeeked);
-      video.removeEventListener('error', handleError);
+      clearTimeout(timeoutId);
+      video.removeEventListener('seeked', onSeeked);
+      video.removeEventListener('error', onError);
     };
-    const handleSeeked = () => {
+    const onSeeked = () => { cleanup(); resolve(); };
+    const onError = () => { cleanup(); reject(new Error('Videobild konnte nicht geladen werden.')); };
+    const timeoutId = setTimeout(() => {
       cleanup();
-      finish();
-    };
-    const handleError = () => {
-      cleanup();
-      finish();
-    };
-    video.addEventListener('seeked', handleSeeked, { once: true });
-    video.addEventListener('error', handleError, { once: true });
-    try {
-      video.currentTime = targetTime;
-    } catch (error) {
-      cleanup();
-      finish();
-    }
+      reject(new Error('Das Video reagiert nicht. Bitte Datei erneut laden.'));
+    }, 10000);
+    video.addEventListener('seeked', onSeeked, { once: true });
+    video.addEventListener('error', onError, { once: true });
+    try { video.currentTime = targetTime; } catch (error) { cleanup(); reject(error); }
   });
 };
 
@@ -426,7 +411,8 @@ const App = () => {
   const [previewZoom, setPreviewZoom] = useState(0.72);
   const [isRecording, setIsRecording] = useState(false);
   const [hasDegular, setHasDegular] = useState(false);
-  const [adobeDegularActive, setAdobeDegularActive] = useState(true);
+  const [exportStatus, setExportStatus] = useState('');
+  const exportBusyRef = useRef(false);
   const [typoAdvanced, setTypoAdvanced] = useState(false);
   const fontInputRef = useRef(null);
   const [draggingTarget, setDraggingTarget] = useState(null);
@@ -447,12 +433,13 @@ const App = () => {
     if (cached?.status === 'loaded') {
       return cached;
     }
-    if (cached?.status === 'loading') {
+    if (cached?.status === 'error' || cached?.status === 'loading') {
       return null;
     }
 
     if (kind === 'video') {
       const video = document.createElement('video');
+      video.crossOrigin = 'anonymous';
       video.muted = true;
       video.loop = true;
       video.playsInline = true;
@@ -469,6 +456,7 @@ const App = () => {
     }
 
     const image = new Image();
+    image.crossOrigin = 'anonymous';
     image.onload = () => {
       assetCacheRef.current.set(src, { status: 'loaded', kind: 'image', element: image });
       setAssetVersion((value) => value + 1);
@@ -491,18 +479,63 @@ const App = () => {
     if (!stageSize.width || !stageSize.height) {
       return previewZoom;
     }
-    return Math.min((stageSize.width - 80) / preset.width, (stageSize.height - 80) / preset.height, 1) * previewZoom;
+    return Math.max(0.05, Math.min((stageSize.width - 80) / preset.width, (stageSize.height - 80) / preset.height, 1) * previewZoom);
   }, [preset.height, preset.width, previewZoom, stageSize.height, stageSize.width]);
 
   const updateScene = (path, value) => setScene((current) => deepSet(current, path, value));
 
-  const requireDegular = () => {
-    const loaded = document.fonts?.check('600 32px Degular') ?? false;
-    setHasDegular(loaded);
-    if (!loaded && !adobeDegularActive) {
-      fontInputRef.current?.click();
+  const prepareExport = async () => {
+    if (scene.infoLayer.show) {
+      const weights = [...new Set([scene.infoLayer.weight ?? 600, scene.infoLayer.titleWeight ?? 700])];
+      for (const weight of weights) {
+        const loaded = await loadDegular(weight);
+        if (!loaded) throw new Error('Degular fehlt. Bitte die Schriftdatei unter Info Text laden.');
+      }
+      await document.fonts.ready;
+      setHasDegular(true);
     }
-    return loaded || adobeDegularActive;
+    const assets = [[scene.mediaSrc, scene.mediaKind], [scene.mask.maskSrc, 'image'],
+      [scene.overlay.showLogo ? scene.overlay.logoSrc : null, 'image']];
+    for (const [src, kind] of assets) {
+      if (!src) continue;
+      getMedia(src, kind);
+      const started = performance.now();
+      while (assetCacheRef.current.get(src)?.status === 'loading') {
+        if (performance.now() - started > 15000) throw new Error('Bild oder Video konnte nicht rechtzeitig geladen werden.');
+        await new Promise(resolve => setTimeout(resolve, 30));
+      }
+      if (assetCacheRef.current.get(src)?.status !== 'loaded') throw new Error('Bild, Maske oder Logo konnte nicht geladen werden. Bitte Datei erneut wählen.');
+    }
+  };
+
+  const runExport = async (operation) => {
+    if (exportBusyRef.current) return;
+    exportBusyRef.current = true;
+    setIsRecording(true);
+    setExportStatus('Export wird vorbereitet …');
+    try {
+      await prepareExport();
+      await operation();
+      setExportStatus('Export fertig.');
+    } catch (error) {
+      console.error(error);
+      setExportStatus(error.message || 'Export fehlgeschlagen.');
+    } finally {
+      exportBusyRef.current = false;
+      setIsRecording(false);
+    }
+  };
+
+  const downloadBlob = (blob, extension) => {
+    if (!blob?.size) throw new Error('Die Exportdatei ist leer.');
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.download = `digilab-mask-${preset.id}-${Date.now()}.${extension}`;
+    link.href = url;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
   };
 
   const applyColorPreset = (presetId) => {
@@ -665,17 +698,19 @@ const App = () => {
     }
     const src = URL.createObjectURL(file);
     try {
-      const face = new FontFace('Degular', `url(${src})`, {
+      const bytes = await file.arrayBuffer();
+      const face = new FontFace('Degular', bytes, {
         style: 'normal',
-        weight: '400 800',
+        weight: fontWeight(bytes, file.name),
       });
       await face.load();
       document.fonts.add(face);
-      setHasDegular(document.fonts?.check('600 32px Degular') ?? true);
+      setHasDegular(true);
       setAssetVersion((value) => value + 1);
     } catch (error) {
       console.error(error);
       window.alert('Degular-Datei nicht geladen.');
+    } finally {
       URL.revokeObjectURL(src);
     }
     event.target.value = '';
@@ -797,120 +832,74 @@ const App = () => {
     }));
   };
 
-  const exportPng = async () => {
-    if (!requireDegular()) {
-      return;
-    }
-    const exportCanvas = document.createElement('canvas');
-    exportCanvas.width = preset.width;
-    exportCanvas.height = preset.height;
-    const ctx = exportCanvas.getContext('2d');
+  const exportPng = () => runExport(async () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = preset.width;
+    canvas.height = preset.height;
     await syncMediaToTime(scene.playback.time);
-    renderScene({ ctx, width: preset.width, height: preset.height, scene, colors: colorPreset, time: scene.playback.time, getAsset: getMedia });
-    const link = document.createElement('a');
-    link.download = `digilab-mask-frame-${preset.id}-${Date.now()}.png`;
-    link.href = exportCanvas.toDataURL('image/png');
-    link.click();
+    renderScene({ ctx: canvas.getContext('2d'), width: preset.width, height: preset.height,
+      scene, colors: colorPreset, time: scene.playback.time, getAsset: getMedia });
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+    downloadBlob(blob, 'png');
+  });
+
+  const recordVideo = async (mimeType, extension) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = preset.width;
+    canvas.height = preset.height;
+    const ctx = canvas.getContext('2d');
+    const fps = scene.playback.fps;
+    await syncMediaToTime(0);
+    renderScene({ ctx, width: preset.width, height: preset.height, scene, colors: colorPreset, time: 0, getAsset: getMedia });
+    const stream = canvas.captureStream(fps);
+    const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 12000000 });
+    const chunks = [];
+    const completed = new Promise((resolve, reject) => {
+      recorder.ondataavailable = event => { if (event.data.size) chunks.push(event.data); };
+      recorder.onerror = event => reject(event.error ?? new Error('Videoaufnahme fehlgeschlagen.'));
+      recorder.onstop = () => resolve(new Blob(chunks, { type: mimeType }));
+    });
+    // Keep a rejection handled even if rendering fails first.
+    completed.catch(() => {});
+    try {
+      recorder.start();
+      const start = performance.now();
+      const durationMs = scene.playback.duration * 1000;
+      while (performance.now() - start < durationMs) {
+        const elapsed = performance.now() - start;
+        const time = elapsed / 1000 * scene.playback.rate;
+        await syncMediaToTime(time);
+        renderScene({ ctx, width: preset.width, height: preset.height, scene, colors: colorPreset, time, getAsset: getMedia });
+        setExportStatus(`Video: ${Math.min(99, Math.round(elapsed / durationMs * 100))}%`);
+        await new Promise(resolve => setTimeout(resolve, Math.max(0, 1000 / fps - (performance.now() - start - elapsed))));
+      }
+      recorder.stop();
+      downloadBlob(await completed, extension);
+    } finally {
+      if (recorder.state !== 'inactive') recorder.stop();
+      stream.getTracks().forEach(track => track.stop());
+    }
   };
 
-  const renderFramesToCanvas = async (targetCtx) => {
-    const totalFrames = Math.max(1, Math.round(scene.playback.duration * scene.playback.fps));
-    for (let frame = 0; frame < totalFrames; frame += 1) {
-      const time = (frame / totalFrames) * scene.playback.duration;
-      await syncMediaToTime(time);
-      renderScene({ ctx: targetCtx, width: preset.width, height: preset.height, scene, colors: colorPreset, time, getAsset: getMedia });
-      await new Promise((resolve) => window.requestAnimationFrame(resolve));
-    }
-  };
+  const exportWebm = () => runExport(async () => {
+    if (typeof MediaRecorder === 'undefined') throw new Error('Videoexport wird in diesem Browser nicht unterstützt.');
+    const mime = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'].find(type => MediaRecorder.isTypeSupported(type));
+    if (!mime) throw new Error('WEBM wird in diesem Browser nicht unterstützt. Bitte MP4 wählen.');
+    await recordVideo(mime, 'webm');
+  });
 
-  const exportWebm = async () => {
-    if (!requireDegular()) {
+  const exportMp4 = () => runExport(async () => {
+    if (typeof VideoEncoder === 'undefined' || typeof VideoFrame === 'undefined') {
+      const mime = typeof MediaRecorder !== 'undefined' && MP4_MEDIA_RECORDER_CANDIDATES.find(type => MediaRecorder.isTypeSupported(type));
+      if (!mime) throw new Error('MP4 wird in diesem Browser nicht unterstützt. Bitte WEBM wählen.');
+      await recordVideo(mime, 'mp4');
       return;
     }
-    const sourceCanvas = canvasRef.current;
-    if (!sourceCanvas || isRecording) {
-      return;
-    }
-    setIsRecording(true);
     const recorderCanvas = document.createElement('canvas');
     recorderCanvas.width = preset.width;
     recorderCanvas.height = preset.height;
     const recorderCtx = recorderCanvas.getContext('2d');
-    const stream = recorderCanvas.captureStream(scene.playback.fps);
-    const mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
-    const chunks = [];
-    mediaRecorder.ondataavailable = (event) => {
-      if (event.data.size > 0) {
-        chunks.push(event.data);
-      }
-    };
-    mediaRecorder.onstop = () => {
-      const blob = new Blob(chunks, { type: 'video/webm' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.download = `digilab-mask-motion-${preset.id}-${Date.now()}.webm`;
-      link.href = url;
-      link.click();
-      URL.revokeObjectURL(url);
-      setIsRecording(false);
-    };
-    mediaRecorder.start();
-    await renderFramesToCanvas(recorderCtx);
-    mediaRecorder.stop();
-  };
-
-  const exportMp4 = async () => {
-    if (!requireDegular()) {
-      return;
-    }
-    if (isRecording) {
-      return;
-    }
-
-    if (typeof window.VideoEncoder === 'undefined' || typeof window.VideoFrame === 'undefined') {
-      window.alert('MP4-Export wird in diesem Browser nicht unterstützt. Bitte nutze hier WEBM oder einen aktuellen Chrome/Edge.');
-      return;
-    }
-
-    setIsRecording(true);
-    try {
-      const recorderCanvas = document.createElement('canvas');
-      recorderCanvas.width = preset.width;
-      recorderCanvas.height = preset.height;
-      const recorderCtx = recorderCanvas.getContext('2d');
-      const fps = Math.max(1, scene.playback.fps);
-
-      if (typeof window.MediaRecorder !== 'undefined') {
-        const supportedMimeType = MP4_MEDIA_RECORDER_CANDIDATES.find((candidate) => window.MediaRecorder.isTypeSupported(candidate));
-        if (supportedMimeType) {
-          const stream = recorderCanvas.captureStream(fps);
-          const chunks = [];
-          const mediaRecorder = new window.MediaRecorder(stream, { mimeType: supportedMimeType });
-
-          const blob = await new Promise(async (resolve, reject) => {
-            mediaRecorder.ondataavailable = (event) => {
-              if (event.data.size > 0) {
-                chunks.push(event.data);
-              }
-            };
-            mediaRecorder.onerror = (event) => reject(event.error ?? new Error('MP4-Aufnahme fehlgeschlagen.'));
-            mediaRecorder.onstop = () => resolve(new Blob(chunks, { type: 'video/mp4' }));
-
-            mediaRecorder.start();
-            await renderFramesToCanvas(recorderCtx);
-            mediaRecorder.stop();
-          });
-
-          const url = URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.download = `digilab-mask-motion-${preset.id}-${Date.now()}.mp4`;
-          link.href = url;
-          link.click();
-          URL.revokeObjectURL(url);
-          return;
-        }
-      }
-
+    const fps = Math.max(1, scene.playback.fps);
       let selectedConfig = null;
       for (const candidate of MP4_ENCODER_CANDIDATES) {
         const support = await window.VideoEncoder.isConfigSupported({
@@ -935,9 +924,9 @@ const App = () => {
       }
 
       if (!selectedConfig) {
-        window.alert('MP4-Export ist auf diesem Geraet leider nicht verfuegbar. Bitte nutze hier WEBM.');
-        setIsRecording(false);
-        return;
+        const mime = typeof MediaRecorder !== 'undefined' && MP4_MEDIA_RECORDER_CANDIDATES.find(type => MediaRecorder.isTypeSupported(type));
+        if (mime) return recordVideo(mime, 'mp4');
+        throw new Error('MP4 ist auf diesem Gerät nicht verfügbar. Bitte WEBM wählen.');
       }
 
       const target = new ArrayBufferTarget();
@@ -963,17 +952,18 @@ const App = () => {
         },
       });
 
+      try {
       encoder.configure(selectedConfig);
 
       const totalFrames = Math.max(1, Math.round(scene.playback.duration * fps));
       for (let frame = 0; frame < totalFrames; frame += 1) {
-        const time = (frame / totalFrames) * scene.playback.duration;
+        const time = frame / fps * scene.playback.rate;
         await syncMediaToTime(time);
         renderScene({ ctx: recorderCtx, width: preset.width, height: preset.height, scene, colors: colorPreset, time, getAsset: getMedia });
 
         const frameDuration = Math.round(1_000_000 / fps);
         const videoFrame = new window.VideoFrame(recorderCanvas, {
-          timestamp: frame * frameDuration,
+          timestamp: Math.round(frame * 1_000_000 / fps),
           duration: frameDuration,
         });
         encoder.encode(videoFrame, { keyFrame: frame === 0 || frame % fps === 0 });
@@ -985,38 +975,41 @@ const App = () => {
         if (encoderError) {
           throw encoderError;
         }
-        await new Promise((resolve) => window.requestAnimationFrame(resolve));
+        setExportStatus(`MP4: ${Math.round((frame + 1) / totalFrames * 100)}%`);
+        await new Promise((resolve) => setTimeout(resolve, 0));
       }
 
       await encoder.flush();
-      encoder.close();
+      if (encoderError) throw encoderError;
+      } finally {
+        if (encoder.state !== 'closed') encoder.close();
+      }
       muxer.finalize();
 
-      const blob = new Blob([target.buffer], { type: 'video/mp4' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.download = `digilab-mask-motion-${preset.id}-${Date.now()}.mp4`;
-      link.href = url;
-      link.click();
-      URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error(error);
-      window.alert('MP4-Export konnte nicht erstellt werden. Bitte pruefe den Browser oder nutze alternativ WEBM.');
-    } finally {
-      setIsRecording(false);
-    }
-  };
+      downloadBlob(new Blob([target.buffer], { type: 'video/mp4' }), 'mp4');
+  });
 
   useEffect(() => {
-    document.fonts?.ready.then(() => {
-      setHasDegular(document.fonts?.check('600 32px Degular') ?? false);
+    const active = new Set([scene.mediaSrc, scene.mask.maskSrc, scene.overlay.logoSrc]);
+    for (const [src, asset] of assetCacheRef.current) {
+      if (src.startsWith('blob:') && !active.has(src)) {
+        if (asset.kind === 'video') { asset.element.pause(); asset.element.removeAttribute('src'); asset.element.load(); }
+        URL.revokeObjectURL(src);
+        assetCacheRef.current.delete(src);
+      }
+    }
+  }, [scene.mediaSrc, scene.mask.maskSrc, scene.overlay.logoSrc]);
+
+  useEffect(() => {
+    loadDegular(600).then(loaded => {
+      setHasDegular(loaded);
       setAssetVersion((value) => value + 1);
-    });
+    }).catch(() => setHasDegular(false));
   }, []);
 
   useEffect(() => {
     let cancelled = false;
-    if (!scene.mediaSrc || scene.mediaKind !== 'video') {
+    if (isRecording || !scene.mediaSrc || scene.mediaKind !== 'video') {
       return undefined;
     }
     const syncPreview = async () => {
@@ -1025,14 +1018,14 @@ const App = () => {
         setAssetVersion((value) => value + 1);
       }
     };
-    syncPreview();
+    syncPreview().catch(error => { if (!cancelled) setExportStatus(error.message); });
     return () => {
       cancelled = true;
     };
-  }, [scene.mediaKind, scene.mediaSrc, scene.playback.fps, scene.playback.time]);
+  }, [isRecording, scene.mediaKind, scene.mediaSrc, scene.playback.fps, scene.playback.time]);
 
   useEffect(() => {
-    if (!scene.playback.playing) {
+    if (isRecording || !scene.playback.playing) {
       lastTickRef.current = 0;
       return undefined;
     }
@@ -1064,7 +1057,7 @@ const App = () => {
     };
     frameId = window.requestAnimationFrame(tick);
     return () => window.cancelAnimationFrame(frameId);
-  }, [scene.playback.fps, scene.playback.loop, scene.playback.playing, scene.playback.rate]);
+  }, [isRecording, scene.playback.fps, scene.playback.loop, scene.playback.playing, scene.playback.rate]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -1079,6 +1072,7 @@ const App = () => {
     <div className="app-shell">
       <input ref={fontInputRef} type="file" accept=".otf,.ttf,.woff,.woff2,font/*" className="sr-only" onChange={handleFontUpload} />
       <aside className="sidebar">
+        <fieldset disabled={isRecording} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
         <div className="sidebar__header">
           <div>
             <div className="eyebrow">Flexible Image Warp System</div>
@@ -1336,8 +1330,8 @@ const App = () => {
             onChange={applyInfoLayoutPreset}
           />
           <UploadButton label="Degular laden" accept=".otf,.ttf,.woff,.woff2,font/*" onSelect={handleFontUpload} />
-          <ToggleField label="Adobe Fonts Degular aktiv" checked={adobeDegularActive} onChange={setAdobeDegularActive} />
-          <div className="asset-note">{hasDegular || adobeDegularActive ? 'Degular aktiv' : 'Degular fehlt'}</div>
+
+          <div className="asset-note">{hasDegular ? 'Degular geladen' : 'Degular fehlt. Bitte Schriftdatei laden.'}</div>
           <div className="button-row">
             {getInfoLayoutPresets(scene.presetId).filter((item) => item.id === 'aep-auto').map((item) => (
               <button key={item.id} className="ghost-button small-chip" type="button" onClick={() => applyInfoLayoutPreset(item.id)}>
@@ -1434,9 +1428,10 @@ const App = () => {
         </Section>
 
         <Section title="Export" icon={Film} defaultOpen={false}>
+          <p role="status" aria-live="polite">{exportStatus}</p>
           <SliderField label="Zoom" value={previewZoom} min={0.45} max={1} step={0.01} format={(value) => `${Math.round(value * 100)}%`} onChange={setPreviewZoom} />
           <div className="button-row">
-            <button className="accent-button" type="button" onClick={exportPng}>
+            <button className="accent-button" type="button" onClick={exportPng} disabled={isRecording}>
               <Download size={16} />
               PNG
             </button>
@@ -1450,6 +1445,7 @@ const App = () => {
             </button>
           </div>
         </Section>
+        </fieldset>
       </aside>
 
       <main className="workspace">

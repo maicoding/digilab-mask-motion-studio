@@ -14,6 +14,7 @@ const getScratchCanvas = (key, width, height) => {
   let canvas = scratch.get(key);
   if (!canvas) {
     canvas = document.createElement('canvas');
+    if (scratch.size >= 16) scratch.delete(scratch.keys().next().value);
     scratch.set(key, canvas);
   }
   if (canvas.width !== width || canvas.height !== height) {
@@ -79,6 +80,7 @@ const getProcessedAsset = (image, settings) => {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
 
+  if (tintCache.size >= 16) tintCache.delete(tintCache.keys().next().value);
   tintCache.set(key, canvas);
   return canvas;
 };
@@ -175,7 +177,7 @@ const getAssetDimensions = (asset) => {
 };
 
 const drawMaskedAsset = (ctx, bounds, scene, phase, asset, colors, maskImage = null) => {
-  const contentCanvas = getScratchCanvas(`content:${bounds.width}:${bounds.height}`, Math.ceil(bounds.width), Math.ceil(bounds.height));
+  const contentCanvas = getScratchCanvas('content', Math.ceil(bounds.width), Math.ceil(bounds.height));
   const contentCtx = contentCanvas.getContext('2d');
   contentCtx.clearRect(0, 0, contentCanvas.width, contentCanvas.height);
   contentCtx.fillStyle = colors.placeholder;
@@ -200,12 +202,28 @@ const drawMaskedAsset = (ctx, bounds, scene, phase, asset, colors, maskImage = n
     contentCtx.restore();
   }
 
-  const finalMaskCanvas = getScratchCanvas(`mask-final:${bounds.width}:${bounds.height}`, Math.ceil(bounds.width), Math.ceil(bounds.height));
+  const finalMaskCanvas = getScratchCanvas('mask-final', Math.ceil(bounds.width), Math.ceil(bounds.height));
   const finalMaskCtx = finalMaskCanvas.getContext('2d');
   finalMaskCtx.clearRect(0, 0, finalMaskCanvas.width, finalMaskCanvas.height);
   finalMaskCtx.imageSmoothingEnabled = false;
   if (maskImage) {
-    finalMaskCtx.drawImage(maskImage, 0, 0, finalMaskCanvas.width, finalMaskCanvas.height);
+    const w = finalMaskCanvas.width;
+    const h = finalMaskCanvas.height;
+    const cycles = Math.max(1, Math.round(scene.mask.evolutionSpeed ?? 1));
+    const motion = Math.sin(TAU * phase * cycles);
+    const scale = scene.mask.shapeScale * (1 + motion * (scene.mask.breath ?? 0));
+    finalMaskCtx.save();
+    finalMaskCtx.translate(w / 2 + scene.mask.xOffset * w * 0.08, h / 2 + scene.mask.yOffset * h * 0.08);
+    finalMaskCtx.scale(scale * scene.stage.scale, scale * scene.stage.scale);
+    const strips = Math.max(8, Math.round(scene.mask.pixelSize));
+    for (let row = 0; row < strips; row++) {
+      const y = row / strips;
+      const shift = Math.sin(y * TAU * (2 + scene.mask.complexity * 10) + TAU * phase * cycles + scene.mask.seed * 0.002)
+        * (scene.mask.wobble + scene.mask.turbulence * 0.2) * w * 0.12;
+      finalMaskCtx.drawImage(maskImage, 0, y * maskImage.height, maskImage.width, maskImage.height / strips,
+        -w / 2 + shift, -h / 2 + y * h, w, h / strips + 1);
+    }
+    finalMaskCtx.restore();
   } else {
     const maskSize = Math.round(Math.max(36, scene.mask.pixelSize));
     const maskCanvas = getScratchCanvas(`mask:${scene.mask.presetId}:${maskSize}`, maskSize, maskSize);
@@ -252,7 +270,12 @@ const fitFontSize = (ctx, lines, maxWidth, initialSize, weight, fontFamily) => {
 };
 
 const wrapTitle = (ctx, text, maxWidth) => {
-  const words = String(text ?? '').toUpperCase().trim().split(/\s+/).filter(Boolean);
+  const paragraphs = String(text ?? '').toUpperCase().split('\n');
+  return paragraphs.flatMap(paragraph => wrapParagraph(ctx, paragraph, maxWidth));
+};
+
+const wrapParagraph = (ctx, text, maxWidth) => {
+  const words = text.trim().split(/\s+/).filter(Boolean);
   const lines = [];
   let current = '';
   words.forEach((word) => {
