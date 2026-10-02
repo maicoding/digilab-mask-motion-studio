@@ -1,3 +1,5 @@
+import { MASK_PRESETS } from './presets.js';
+
 const scratch = new Map();
 const tintCache = new Map();
 
@@ -209,17 +211,23 @@ const drawMaskedAsset = (ctx, bounds, scene, phase, asset, colors, maskImage = n
   if (maskImage) {
     const w = finalMaskCanvas.width;
     const h = finalMaskCanvas.height;
+    const original = MASK_PRESETS.find(entry => entry.id === scene.mask.presetId) ?? scene.mask;
     const cycles = Math.max(1, Math.round(scene.mask.evolutionSpeed ?? 1));
     const motion = Math.sin(TAU * phase * cycles);
     const scale = scene.mask.shapeScale * (1 + motion * (scene.mask.breath ?? 0));
     finalMaskCtx.save();
-    finalMaskCtx.translate(w / 2 + scene.mask.xOffset * w * 0.08, h / 2 + scene.mask.yOffset * h * 0.08);
-    finalMaskCtx.scale(scale * scene.stage.scale, scale * scene.stage.scale);
+    finalMaskCtx.translate(w * scene.stage.x + scene.mask.xOffset * w * 0.08,
+      h * (0.5 + scene.stage.y - (original.stageY ?? 0.52)) + scene.mask.yOffset * h * 0.08);
+    finalMaskCtx.rotate((scene.stage.rotation ?? 0) * Math.PI / 180);
+    finalMaskCtx.scale(scale * scene.stage.scale * scene.stage.width / original.width * scene.mask.squishX / original.squishX,
+      scale * scene.stage.scale * scene.stage.height / original.height * scene.mask.squishY / original.squishY);
     const strips = Math.max(8, Math.round(scene.mask.pixelSize));
     for (let row = 0; row < strips; row++) {
       const y = row / strips;
       const shift = Math.sin(y * TAU * (2 + scene.mask.complexity * 10) + TAU * phase * cycles + scene.mask.seed * 0.002)
-        * (scene.mask.wobble + scene.mask.turbulence * 0.2) * w * 0.12;
+        * (scene.mask.wobble + scene.mask.turbulence * 0.2) * w * 0.12
+        + Math.sin(TAU * phase * cycles + y * Math.max(1, scene.mask.points / 4))
+          * scene.mask.asymmetry * (y - 0.5) * w * 0.08;
       finalMaskCtx.drawImage(maskImage, 0, y * maskImage.height, maskImage.width, maskImage.height / strips,
         -w / 2 + shift, -h / 2 + y * h, w, h / strips + 1);
     }
