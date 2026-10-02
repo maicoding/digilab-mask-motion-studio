@@ -6,6 +6,18 @@ export const CANVAS_PRESETS = [
 ];
 
 export const COLOR_PRESETS = [
+  {"id": "ae-cymk_rot", "label": "AE CMYK Rot", "background": "#E63229", "frame": "#000000", "placeholder": "#1E1E1A", "accent": "#FFFFFF"},
+  {"id": "ae-cymk_grün", "label": "AE CMYK Grün", "background": "#0AA537", "frame": "#000000", "placeholder": "#1E1E1A", "accent": "#FFFFFF"},
+  {"id": "ae-cymk_gelb", "label": "AE CMYK Gelb", "background": "#FFE500", "frame": "#000000", "placeholder": "#1E1E1A", "accent": "#FFFFFF"},
+  {"id": "ae-cymk_lila", "label": "AE CMYK Lila", "background": "#472483", "frame": "#000000", "placeholder": "#1E1E1A", "accent": "#FFFFFF"},
+  {"id": "ae-rgb_blau", "label": "AE RGB Blau", "background": "#3355FF", "frame": "#000000", "placeholder": "#1E1E1A", "accent": "#FFFFFF"},
+  {"id": "ae-rgb_hellblau", "label": "AE RGB Hellblau", "background": "#00FDFF", "frame": "#000000", "placeholder": "#1E1E1A", "accent": "#FFFFFF"},
+  {"id": "ae-rgb_pink", "label": "AE RGB Pink", "background": "#FF66FF", "frame": "#000000", "placeholder": "#1E1E1A", "accent": "#FFFFFF"},
+  {"id": "ae-rgb_orange", "label": "AE RGB Orange", "background": "#FF6E00", "frame": "#000000", "placeholder": "#1E1E1A", "accent": "#FFFFFF"},
+  {"id": "ae-rgb_grün", "label": "AE RGB Grün", "background": "#00FF0A", "frame": "#000000", "placeholder": "#1E1E1A", "accent": "#FFFFFF"},
+  {"id": "ae-rgb_gelb", "label": "AE RGB Gelb", "background": "#FFF500", "frame": "#000000", "placeholder": "#1E1E1A", "accent": "#FFFFFF"},
+  {"id": "ae-rgb_lila", "label": "AE RGB Lila", "background": "#9933FF", "frame": "#000000", "placeholder": "#1E1E1A", "accent": "#FFFFFF"},
+  {"id": "ae-schwarz", "label": "AE Schwarz", "background": "#000000", "frame": "#000000", "placeholder": "#1E1E1A", "accent": "#FFFFFF"},
   { id: 'pink-lila', label: 'Pink / Lila', background: '#D562EB', frame: '#000000', placeholder: '#1E1E1A', accent: '#FFFFFF' },
   { id: 'tuerkis-lila', label: 'Türkis / Lila', background: '#00FDFF', frame: '#000000', placeholder: '#22221F', accent: '#9933FF' },
   { id: 'gelb-schwarz', label: 'Gelb / Schwarz', background: '#FFF500', frame: '#000000', placeholder: '#1E1E1A', accent: '#000000' },

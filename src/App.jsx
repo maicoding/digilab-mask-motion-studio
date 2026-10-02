@@ -23,6 +23,8 @@ import {
 } from './presets.js';
 import { renderScene } from './engine.js';
 import { loadDegular, fontWeight } from './fonts.js';
+import { AE_TEMPLATES, applyAeTemplate } from './ae-templates.js';
+import { loadAeMotion } from './ae-motion.js';
 
 const MP4_ENCODER_CANDIDATES = [
   { codec: 'avc1.420033', avc: { format: 'avc' } },
@@ -405,7 +407,7 @@ const resolveMaskPresetForCanvas = (maskPresetId, canvasPresetId) => {
 };
 
 const App = () => {
-  const initialScene = useMemo(() => createInitialScene(), []);
+  const initialScene = useMemo(() => applyAeTemplate(createInitialScene(), 'post-01', true), []);
   const [scene, setScene] = useState(initialScene);
   const [assetVersion, setAssetVersion] = useState(0);
   const [previewZoom, setPreviewZoom] = useState(0.72);
@@ -482,14 +484,23 @@ const App = () => {
     return Math.max(0.05, Math.min((stageSize.width - 80) / preset.width, (stageSize.height - 80) / preset.height, 1) * previewZoom);
   }, [preset.height, preset.width, previewZoom, stageSize.height, stageSize.width]);
 
-  const updateScene = (path, value) => setScene((current) => deepSet(current, path, value));
+  const updateScene = (path, value) => setScene((current) => {
+    if (path === 'presetId' && current.aeTemplateId) {
+      if (value === 'square' || value === 'story') return applyAeTemplate(current, `${value === 'square' ? 'post' : 'story'}-${current.aeTemplateId.slice(-2)}`);
+      return { ...deepSet(current, path, value), aeTemplateId: null, mask: { ...current.mask, aeMotionId: null } };
+    }
+    const next = deepSet(current, path, value);
+    if (['mask.turbulence', 'mask.complexity', 'mask.evolutionSpeed', 'mask.wobble', 'mask.asymmetry', 'mask.seed', 'mask.points', 'mask.pixelSize', 'mask.breath'].includes(path)) next.mask = { ...next.mask, aeMotionId: null };
+    return next;
+  });
 
   const prepareExport = async () => {
+    if (scene.mask.aeMotionId) await loadAeMotion(scene.mask.aeMotionId);
     if (scene.infoLayer.show) {
       const weights = [...new Set([scene.infoLayer.weight ?? 600, scene.infoLayer.titleWeight ?? 700])];
       for (const weight of weights) {
         const loaded = await loadDegular(weight);
-        if (!loaded) throw new Error('Degular fehlt. Bitte die Schriftdatei unter Info Text laden.');
+        if (!loaded) throw new Error(`Degular ${weight === 600 ? 'Semibold' : weight === 400 ? 'Regular' : weight} fehlt. Bitte den passenden Schriftschnitt unter Info Text laden.`);
       }
       await document.fonts.ready;
       setHasDegular(true);
@@ -573,6 +584,7 @@ const App = () => {
         mask: {
           ...current.mask,
           ...presetEntry,
+          aeMotionId: null,
           presetId: presetEntry.id,
         },
         stage: {
@@ -596,6 +608,7 @@ const App = () => {
       mask: {
         ...current.mask,
         ...presetEntry.mask,
+        aeMotionId: null,
       },
       imageMotion: {
         ...current.imageMotion,
@@ -629,6 +642,7 @@ const App = () => {
           ...current.mask,
           ...maskPreset,
           ...motionPreset.mask,
+          aeMotionId: null,
           presetId: maskPreset.id,
         },
         imageMotion: {
@@ -731,41 +745,11 @@ const App = () => {
     }));
   };
 
-  const applyAepInfoLayout = () => {
-    const layout = getAepInfoLayout(scene.presetId);
-    setScene((current) => ({
-      ...current,
-      infoLayoutPresetId: 'aep-auto',
-      infoLayer: {
-        ...current.infoLayer,
-        dateX: layout.dateX,
-        dateY: layout.dateY,
-        titleX: layout.titleX,
-        titleY: layout.titleY,
-        title2Y: layout.title2Y,
-        titleMaxWidth: layout.titleMaxWidth,
-        titleLineHeight: layout.titleLineHeight,
-        metaX: layout.metaX,
-        metaY: layout.metaY,
-        emailX: layout.emailX,
-        emailY: layout.emailY,
-        locationX: layout.locationX,
-        locationY: layout.locationY,
-        dateSize: layout.dateSize,
-        titleSize: layout.titleSize,
-        metaSize: layout.metaSize,
-        emailSize: layout.emailSize,
-        locationSize: layout.locationSize,
-      },
-      overlay: {
-        ...current.overlay,
-        logoX: layout.logoX,
-        logoY: layout.logoY,
-      },
-    }));
-  };
+  const applyAepInfoLayout = () => setScene(current => applyAeTemplate(current,
+    current.aeTemplateId ?? (current.presetId === 'story' ? 'story-01' : 'post-01')));
 
   const applyInfoLayoutPreset = (presetId) => {
+    if (presetId === 'ae-original' || presetId === 'aep-auto') { applyAepInfoLayout(); return; }
     const layoutPreset = getInfoLayoutPresets(scene.presetId).find((item) => item.id === presetId);
     if (!layoutPreset) {
       return;
@@ -773,6 +757,7 @@ const App = () => {
     setScene((current) => ({
       ...current,
       infoLayoutPresetId: presetId,
+      aeTemplateId: null,
       infoLayer: {
         ...current.infoLayer,
         ...layoutPreset.values,
@@ -790,7 +775,7 @@ const App = () => {
     if (!presetEntry) {
       return;
     }
-    setScene((current) => ({
+    setScene((current) => current.aeTemplateId ? applyAeTemplate(current, `${presetEntry.presetId === 'story' ? 'story' : 'post'}-${current.aeTemplateId.slice(-2)}`) : ({
       ...current,
       presetId: presetEntry.presetId,
       infoLayoutPresetId: 'aep-auto',
@@ -1001,11 +986,20 @@ const App = () => {
   }, [scene.mediaSrc, scene.mask.maskSrc, scene.overlay.logoSrc]);
 
   useEffect(() => {
-    loadDegular(600).then(loaded => {
+    Promise.all([loadDegular(scene.infoLayer.weight ?? 400), loadDegular(scene.infoLayer.titleWeight ?? 600)]).then(results => {
+      const loaded = results.every(Boolean);
       setHasDegular(loaded);
       setAssetVersion((value) => value + 1);
     }).catch(() => setHasDegular(false));
-  }, []);
+  }, [scene.infoLayer.weight, scene.infoLayer.titleWeight]);
+
+  useEffect(() => {
+    if (!scene.mask.aeMotionId) return;
+    let active = true;
+    loadAeMotion(scene.mask.aeMotionId).then(() => { if (active) setAssetVersion(value => value + 1); })
+      .catch(error => { if (active) setExportStatus(error.message); });
+    return () => { active = false; };
+  }, [scene.mask.aeMotionId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1135,6 +1129,15 @@ const App = () => {
           </div>
         </Section>
 
+        <Section title="AE-Vorlagen" icon={Film}>
+          <SelectField label="Originalvorlage" value={scene.aeTemplateId ?? ''}
+            options={[{ value: '', label: 'Eigene Gestaltung' }, ...AE_TEMPLATES.map(item => ({ value: item.id, label: item.label }))]}
+            onChange={id => setScene(current => id ? applyAeTemplate(current, id) : { ...current, aeTemplateId: null, mask: { ...current.mask, aeMotionId: null } })} />
+          <div className="asset-note">{scene.mask.aeMotionId ? (scene.mask.aeStatic ? 'Originale Maske · statisch' : 'Originale Maskenbewegung · 15 Sekunden · 30 Bilder/s') : 'Eigene Maskenbewegung'}</div>
+          {scene.aeTemplateId && <button className="ghost-button" type="button"
+            onClick={() => setScene(current => applyAeTemplate(current, current.aeTemplateId, true))}>Originaltexte und Einstellungen einsetzen</button>}
+        </Section>
+
         <Section title="Motion Modes" icon={Film}>
           <SelectField
             label="Scene Preset"
@@ -1156,7 +1159,7 @@ const App = () => {
           <SelectField
             label="Motion Preset"
             value={scene.motionPresetId}
-            options={MOTION_PRESETS.map((item) => ({ value: item.id, label: item.label }))}
+            options={[...(scene.mask.aeMotionId ? [{ value: 'ae-original', label: 'AE Original' }] : []), ...MOTION_PRESETS.map((item) => ({ value: item.id, label: item.label }))]}
             onChange={applyMotionPreset}
           />
           <div className="button-row">
@@ -1188,12 +1191,12 @@ const App = () => {
             updateScene('useCustomBackground', true);
           }} />
           <div className="field-grid">
-            <SliderField label="Stage X" value={scene.stage.x} min={0.2} max={0.8} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('stage.x', value)} />
-            <SliderField label="Stage Y" value={scene.stage.y} min={0.2} max={0.8} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('stage.y', value)} />
+            <SliderField label="Stage X" value={scene.stage.x} min={-0.5} max={1.5} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('stage.x', value)} />
+            <SliderField label="Stage Y" value={scene.stage.y} min={-0.5} max={1.5} step={0.001} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('stage.y', value)} />
           </div>
           <div className="field-grid">
-            <SliderField label="Stage Breite" value={scene.stage.width} min={0.3} max={0.92} step={0.01} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('stage.width', value)} />
-            <SliderField label="Stage Höhe" value={scene.stage.height} min={0.2} max={0.86} step={0.01} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('stage.height', value)} />
+            <SliderField label="Stage Breite" value={scene.stage.width} min={0.1} max={1.5} step={0.01} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('stage.width', value)} />
+            <SliderField label="Stage Höhe" value={scene.stage.height} min={0.1} max={1.5} step={0.01} format={(value) => `${Math.round(value * 100)}%`} onChange={(value) => updateScene('stage.height', value)} />
           </div>
           <SliderField label="Mask Size" value={scene.stage.scale ?? 1} min={0.6} max={1.5} step={0.01} format={(value) => `${value.toFixed(2)}x`} onChange={(value) => updateScene('stage.scale', value)} />
           <ToggleField label="Backdrop Box" checked={scene.stage.showBackdrop ?? false} onChange={(value) => updateScene('stage.showBackdrop', value)} />
@@ -1326,7 +1329,7 @@ const App = () => {
           <SelectField
             label="Text Layout Preset"
             value={scene.infoLayoutPresetId ?? 'aep-auto'}
-            options={getInfoLayoutPresets(scene.presetId).filter((item) => item.id === 'aep-auto').map((item) => ({ value: item.id, label: item.label }))}
+            options={[{ value: 'ae-original', label: 'AE Original' }, ...getInfoLayoutPresets(scene.presetId).filter((item) => item.id === 'aep-auto').map((item) => ({ value: item.id, label: item.label }))]}
             onChange={applyInfoLayoutPreset}
           />
           <UploadButton label="Degular laden" accept=".otf,.ttf,.woff,.woff2,font/*" onSelect={handleFontUpload} />
@@ -1347,6 +1350,8 @@ const App = () => {
             <TextAreaField label="Datum" value={scene.infoLayer.date} onChange={(value) => updateScene('infoLayer.date', value)} rows={2} />
             <TextAreaField label="Anmeldung" value={scene.infoLayer.email} onChange={(value) => updateScene('infoLayer.email', value)} rows={2} />
           </div>
+          {scene.aeTemplateId ? <TextAreaField label="Titelzeilen (bis zu 6)" value={scene.infoLayer.aeHeaderText ?? ''}
+            onChange={value => updateScene('infoLayer.aeHeaderText', value)} rows={6} /> : <>
           <label className="field">
             <div className="field__head">
               <span>Titel Zeile 1</span>
@@ -1359,6 +1364,7 @@ const App = () => {
             </div>
             <textarea rows={2} value={scene.infoLayer.title2} onChange={(event) => updateScene('infoLayer.title2', event.target.value)} />
           </label>
+          </>}
           <div className="field-grid">
             <TextAreaField label="Start" value={scene.infoLayer.start} onChange={(value) => updateScene('infoLayer.start', value)} rows={2} />
             <TextAreaField label="Dauer" value={scene.infoLayer.duration} onChange={(value) => updateScene('infoLayer.duration', value)} rows={2} />

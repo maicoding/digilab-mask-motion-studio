@@ -5,7 +5,7 @@ const localNames = { 100: 'Thin', 200: 'ExtraLight', 300: 'Light', 400: 'Regular
 const attempts = new Map();
 export const loadDegular = async (weight) => {
   const existing = [...document.fonts].filter(face =>
-    face.family.replace(/['"]/g, '').toLowerCase() === 'degular' && face.status === 'loaded');
+    face.family.replace(/['"]/g, '').toLowerCase() === 'degular' && face.status === 'loaded' && face.style === 'normal');
   if (existing.some(face => {
     const [min, max = min] = face.weight.split(' ').map(Number);
     return weight >= min && weight <= max;
@@ -22,7 +22,10 @@ export const loadDegular = async (weight) => {
       } catch {
         try {
           const faces = await document.fonts.load(`${weight} 32px "degular"`, 'ÄÖÜß DigiLab');
-          return faces.length > 0;
+          return faces.some(face => {
+            const [min, max = min] = face.weight.split(' ').map(Number);
+            return face.style === 'normal' && weight >= min && weight <= max;
+          });
         } catch { return false; }
       }
     })());

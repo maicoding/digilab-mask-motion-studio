@@ -1,4 +1,6 @@
 import { MASK_PRESETS } from './presets.js';
+import { getAeTemplate } from './ae-templates.js';
+import { getAeMotion, drawAeMotion } from './ae-motion.js';
 
 const scratch = new Map();
 const tintCache = new Map();
@@ -178,7 +180,7 @@ const getAssetDimensions = (asset) => {
   return null;
 };
 
-const drawMaskedAsset = (ctx, bounds, scene, phase, asset, colors, maskImage = null) => {
+const drawMaskedAsset = (ctx, bounds, scene, phase, asset, colors, maskImage = null, time = 0) => {
   const contentCanvas = getScratchCanvas('content', Math.ceil(bounds.width), Math.ceil(bounds.height));
   const contentCtx = contentCanvas.getContext('2d');
   contentCtx.clearRect(0, 0, contentCanvas.width, contentCanvas.height);
@@ -208,7 +210,20 @@ const drawMaskedAsset = (ctx, bounds, scene, phase, asset, colors, maskImage = n
   const finalMaskCtx = finalMaskCanvas.getContext('2d');
   finalMaskCtx.clearRect(0, 0, finalMaskCanvas.width, finalMaskCanvas.height);
   finalMaskCtx.imageSmoothingEnabled = false;
-  if (maskImage) {
+  if (scene.mask.aeMotionId) {
+    const animation = getAeMotion(scene.mask.aeMotionId);
+    if (animation) {
+      finalMaskCtx.save();
+      finalMaskCtx.translate(finalMaskCanvas.width * scene.stage.x + scene.mask.xOffset * finalMaskCanvas.width * 0.08,
+        finalMaskCanvas.height * scene.stage.y + scene.mask.yOffset * finalMaskCanvas.height * 0.08);
+      finalMaskCtx.rotate(scene.stage.rotation * Math.PI / 180);
+      finalMaskCtx.scale(finalMaskCanvas.width / animation.width * scene.stage.width * scene.stage.scale * scene.mask.shapeScale * scene.mask.squishX * scene.mask.aeFlipX,
+        finalMaskCanvas.height / animation.height * scene.stage.height * scene.stage.scale * scene.mask.shapeScale * scene.mask.squishY * scene.mask.aeFlipY);
+      finalMaskCtx.translate(-animation.width / 2, -animation.height / 2);
+      drawAeMotion(finalMaskCtx, animation, time);
+      finalMaskCtx.restore();
+    }
+  } else if (maskImage) {
     const w = finalMaskCanvas.width;
     const h = finalMaskCanvas.height;
     const original = MASK_PRESETS.find(entry => entry.id === scene.mask.presetId) ?? scene.mask;
@@ -307,10 +322,55 @@ const drawLines = (ctx, lines, x, y, lineHeight) => {
   });
 };
 
-const drawInfoLayer = (ctx, width, height, infoLayer) => {
+const drawAeInfoLayer = (ctx, width, height, info, template) => {
+  const scaleX = width / template.width, scaleY = height / template.height;
+  const headerLines = String(info.aeHeaderText ?? '').split('\n').slice(0, 6);
+  const titles = template.texts.filter(text => text.name.startsWith('Zeile_'));
+  ctx.save();
+  ctx.fontKerning = 'normal';
+  if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
+  ctx.textBaseline = 'alphabetic';
+  for (const text of template.texts) {
+    const isTitle = text.name.startsWith('Zeile_');
+    let lines, field, color, size, x, y, align;
+    if (isTitle) {
+      const index = Number(text.name.split('_')[1]) - 1;
+      lines = [headerLines[index] ?? ''];
+      field = 'title'; color = info.titleColor; size = info.titleSize;
+      x = width * info.titleX;
+      const group = index < 3 ? 0 : 3;
+      y = height * (group === 0 ? info.titleY : info.title2Y)
+        + (text.y - titles[group].y) * scaleY * size / text.size
+          * info.titleLineHeight / (text.leading / text.size);
+      align = info.titleAlign ?? text.align;
+    } else {
+      const map = { Wochentag_Datum: ['date', info.date, info.dateColor, info.dateSize],
+        Start_Dauer: ['meta', [info.start, info.duration].filter(Boolean).join('\n'), info.metaColor, info.metaSize],
+        Anmeldung: ['email', info.email, info.emailColor, info.emailSize],
+        Ort_Raum: ['location', info.location, info.metaColor, info.locationSize] };
+      const entry = map[text.name];
+      if (!entry) continue;
+      [field, lines, color, size] = entry; lines = String(lines ?? '').split('\n');
+      x = width * info[`${field}X`]; y = height * info[`${field}Y`];
+      align = info[`${field}Align`] ?? text.align;
+    }
+    if (text.allCaps) lines = lines.map(line => line.toLocaleUpperCase('de-DE'));
+    const weight = isTitle ? info.titleWeight : info.weight;
+    const maxWidth = isTitle ? width * info.titleMaxWidth : text.maxWidth * scaleX;
+    const fontSize = fitFontSize(ctx, lines, maxWidth, size * scaleX, weight, info.fontFamily);
+    ctx.font = `${weight} ${fontSize}px "${info.fontFamily}"`;
+    ctx.fillStyle = color;
+    ctx.textAlign = align;
+    drawLines(ctx, lines, x, y, text.leading / text.size * fontSize * scaleY / scaleX);
+  }
+  ctx.restore();
+};
+
+const drawInfoLayer = (ctx, width, height, infoLayer, template) => {
   if (!infoLayer?.show) {
     return;
   }
+  if (template) { drawAeInfoLayer(ctx, width, height, infoLayer, template); return; }
   const fontFamily = infoLayer.fontFamily ?? 'Degular';
   ctx.save();
   ctx.fontKerning = 'normal';
@@ -400,10 +460,10 @@ export const renderScene = ({ ctx, width, height, scene, colors, time, getAsset 
 
   const asset = getAsset(scene.mediaSrc, scene.mediaKind)?.element ?? null;
   const maskImage = scene.mask.maskSrc ? getAsset(scene.mask.maskSrc, 'image')?.element ?? null : null;
-  const maskBounds = maskImage ? { x: 0, y: 0, width, height } : bounds;
-  drawMaskedAsset(ctx, maskBounds, scene, phase, asset, colors, maskImage);
+  const maskBounds = (maskImage || scene.mask.aeMotionId) ? { x: 0, y: 0, width, height } : bounds;
+  drawMaskedAsset(ctx, maskBounds, scene, phase, asset, colors, maskImage, time);
 
-  drawInfoLayer(ctx, width, height, scene.infoLayer);
+  drawInfoLayer(ctx, width, height, scene.infoLayer, getAeTemplate(scene.aeTemplateId));
 
   const logoImage = getAsset(scene.overlay.logoSrc, 'image')?.element ?? null;
   drawLogo(ctx, width, height, scene.overlay, logoImage);
